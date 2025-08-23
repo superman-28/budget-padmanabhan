@@ -1,4 +1,3 @@
-
 import { useMemo } from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,29 +8,10 @@ import { startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
 interface CategoryBreakdownProps {
   transactions: Transaction[];
   selectedDate: Date;
+  categories: Array<{ value: string; label: string; icon: string; color: string }>;
 }
 
-const categoryColors: Record<string, string> = {
-  food: '#eab308',
-  transport: '#3b82f6',
-  entertainment: '#8b5cf6',
-  shopping: '#ef4444',
-  bills: '#22c55e',
-  health: '#06b6d4',
-  other: '#6b7280',
-};
-
-const categoryLabels: Record<string, string> = {
-  food: 'Food & Dining',
-  transport: 'Transportation',
-  entertainment: 'Entertainment',
-  shopping: 'Shopping',
-  bills: 'Bills & Utilities',
-  health: 'Healthcare',
-  other: 'Other',
-};
-
-export const CategoryBreakdown = ({ transactions, selectedDate }: CategoryBreakdownProps) => {
+export const CategoryBreakdown = ({ transactions, selectedDate, categories }: CategoryBreakdownProps) => {
   const categoryData = useMemo(() => {
     const monthStart = startOfMonth(selectedDate);
     const monthEnd = endOfMonth(selectedDate);
@@ -44,18 +24,32 @@ export const CategoryBreakdown = ({ transactions, selectedDate }: CategoryBreakd
     const categoryTotals: Record<string, number> = {};
     
     monthExpenses.forEach(t => {
-      categoryTotals[t.category] = (categoryTotals[t.category] || 0) + t.amount;
+      const categoryValues = t.category.split(',');
+      const amountPerCategory = t.amount / categoryValues.length;
+      
+      categoryValues.forEach(catValue => {
+        const trimmedCat = catValue.trim();
+        categoryTotals[trimmedCat] = (categoryTotals[trimmedCat] || 0) + amountPerCategory;
+      });
     });
     
     return Object.entries(categoryTotals)
-      .map(([category, amount]) => ({
-        name: categoryLabels[category] || category,
-        value: amount,
-        color: categoryColors[category] || '#6b7280',
-        percentage: 0 // Will be calculated after we have the total
-      }))
+      .map(([categoryValue, amount]) => {
+        const categoryInfo = categories.find(cat => cat.value === categoryValue) || {
+          label: categoryValue,
+          icon: '📝',
+          color: '#6b7280'
+        };
+        
+        return {
+          name: categoryInfo.label,
+          value: amount,
+          color: categoryInfo.color,
+          percentage: 0 // Will be calculated after we have the total
+        };
+      })
       .sort((a, b) => b.value - a.value);
-  }, [transactions, selectedDate]);
+  }, [transactions, selectedDate, categories]);
 
   const totalExpenses = categoryData.reduce((sum, item) => sum + item.value, 0);
   

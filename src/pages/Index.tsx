@@ -6,6 +6,7 @@ import { ExpenseForm } from '@/components/ExpenseForm';
 import { TransactionList } from '@/components/TransactionList';
 import { MonthlyChart } from '@/components/MonthlyChart';
 import { CategoryBreakdown } from '@/components/CategoryBreakdown';
+import { MonthlyTable } from '@/components/MonthlyTable';
 
 export interface Transaction {
   id: string;
@@ -16,22 +17,50 @@ export interface Transaction {
   type: 'expense' | 'income';
 }
 
+interface Category {
+  value: string;
+  label: string;
+  icon: string;
+  color: string;
+}
+
+const defaultCategories: Category[] = [
+  { value: 'food', label: 'Food & Dining', icon: '🍽️', color: '#eab308' },
+  { value: 'transport', label: 'Transportation', icon: '🚗', color: '#3b82f6' },
+  { value: 'entertainment', label: 'Entertainment', icon: '🎬', color: '#8b5cf6' },
+  { value: 'shopping', label: 'Shopping', icon: '🛍️', color: '#ef4444' },
+  { value: 'bills', label: 'Bills & Utilities', icon: '📄', color: '#22c55e' },
+  { value: 'health', label: 'Healthcare', icon: '🏥', color: '#06b6d4' },
+  { value: 'other', label: 'Other', icon: '💼', color: '#6b7280' },
+];
+
 const Index = () => {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [selectedDate, setSelectedDate] = useState(new Date());
+  const [categories, setCategories] = useState<Category[]>(defaultCategories);
 
-  // Load transactions from localStorage on mount
+  // Load data from localStorage on mount
   useEffect(() => {
     const savedTransactions = localStorage.getItem('financeTrackerTransactions');
+    const savedCategories = localStorage.getItem('financeTrackerCategories');
+    
     if (savedTransactions) {
       setTransactions(JSON.parse(savedTransactions));
     }
+    
+    if (savedCategories) {
+      setCategories(JSON.parse(savedCategories));
+    }
   }, []);
 
-  // Save transactions to localStorage whenever transactions change
+  // Save data to localStorage whenever they change
   useEffect(() => {
     localStorage.setItem('financeTrackerTransactions', JSON.stringify(transactions));
   }, [transactions]);
+
+  useEffect(() => {
+    localStorage.setItem('financeTrackerCategories', JSON.stringify(categories));
+  }, [categories]);
 
   const addTransaction = (transaction: Omit<Transaction, 'id'>) => {
     const newTransaction: Transaction = {
@@ -43,6 +72,10 @@ const Index = () => {
 
   const deleteTransaction = (id: string) => {
     setTransactions(prev => prev.filter(t => t.id !== id));
+  };
+
+  const addCategory = (category: Category) => {
+    setCategories(prev => [...prev, category]);
   };
 
   return (
@@ -59,16 +92,31 @@ const Index = () => {
           {/* Left Column - Forms and Charts */}
           <div className="lg:col-span-2 space-y-8">
             {/* Expense Form */}
-            <ExpenseForm onAddTransaction={addTransaction} />
+            <ExpenseForm 
+              onAddTransaction={addTransaction} 
+              categories={categories}
+              onAddCategory={addCategory}
+            />
             
             {/* Monthly Chart */}
             <MonthlyChart transactions={transactions} selectedDate={selectedDate} />
+            
+            {/* Monthly Table */}
+            <MonthlyTable 
+              transactions={transactions} 
+              selectedDate={selectedDate}
+              categories={categories}
+            />
           </div>
           
           {/* Right Column - Breakdown and Transactions */}
           <div className="space-y-8">
             {/* Category Breakdown */}
-            <CategoryBreakdown transactions={transactions} selectedDate={selectedDate} />
+            <CategoryBreakdown 
+              transactions={transactions} 
+              selectedDate={selectedDate}
+              categories={categories}
+            />
             
             {/* Recent Transactions */}
             <TransactionList 

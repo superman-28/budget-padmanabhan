@@ -1,6 +1,6 @@
 
 import { useState } from 'react';
-import { Plus, DollarSign } from 'lucide-react';
+import { Plus, DollarSign, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -11,32 +11,28 @@ import { useToast } from '@/hooks/use-toast';
 
 interface ExpenseFormProps {
   onAddTransaction: (transaction: Omit<Transaction, 'id'>) => void;
+  categories: Array<{ value: string; label: string; icon: string; color: string }>;
+  onAddCategory: (category: { value: string; label: string; icon: string; color: string }) => void;
 }
 
-const categories = [
-  { value: 'food', label: 'Food & Dining', icon: '🍽️' },
-  { value: 'transport', label: 'Transportation', icon: '🚗' },
-  { value: 'entertainment', label: 'Entertainment', icon: '🎬' },
-  { value: 'shopping', label: 'Shopping', icon: '🛍️' },
-  { value: 'bills', label: 'Bills & Utilities', icon: '📄' },
-  { value: 'health', label: 'Healthcare', icon: '🏥' },
-  { value: 'other', label: 'Other', icon: '💼' },
-];
-
-export const ExpenseForm = ({ onAddTransaction }: ExpenseFormProps) => {
+export const ExpenseForm = ({ onAddTransaction, categories, onAddCategory }: ExpenseFormProps) => {
   const [amount, setAmount] = useState('');
-  const [category, setCategory] = useState('');
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [description, setDescription] = useState('');
   const [type, setType] = useState<'expense' | 'income'>('expense');
+  const [showAddCategory, setShowAddCategory] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState('');
+  const [newCategoryIcon, setNewCategoryIcon] = useState('');
+  const [newCategoryColor, setNewCategoryColor] = useState('#6b7280');
   const { toast } = useToast();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!amount || !category || !description) {
+    if (!amount || selectedCategories.length === 0 || !description) {
       toast({
         title: "Missing Information",
-        description: "Please fill in all fields",
+        description: "Please fill in all fields and select at least one category",
         variant: "destructive",
       });
       return;
@@ -54,7 +50,7 @@ export const ExpenseForm = ({ onAddTransaction }: ExpenseFormProps) => {
 
     onAddTransaction({
       amount: numAmount,
-      category,
+      category: selectedCategories.join(','), // Store multiple categories as comma-separated
       description,
       date: new Date().toISOString(),
       type,
@@ -62,13 +58,50 @@ export const ExpenseForm = ({ onAddTransaction }: ExpenseFormProps) => {
 
     // Reset form
     setAmount('');
-    setCategory('');
+    setSelectedCategories([]);
     setDescription('');
     
     toast({
       title: "Transaction Added",
       description: `${type === 'expense' ? 'Expense' : 'Income'} of $${numAmount.toFixed(2)} recorded successfully`,
     });
+  };
+
+  const handleAddCategory = () => {
+    if (!newCategoryName.trim()) {
+      toast({
+        title: "Invalid Category",
+        description: "Please enter a category name",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const categoryValue = newCategoryName.toLowerCase().replace(/\s+/g, '-');
+    onAddCategory({
+      value: categoryValue,
+      label: newCategoryName,
+      icon: newCategoryIcon || '📝',
+      color: newCategoryColor,
+    });
+
+    setNewCategoryName('');
+    setNewCategoryIcon('');
+    setNewCategoryColor('#6b7280');
+    setShowAddCategory(false);
+    
+    toast({
+      title: "Category Added",
+      description: `${newCategoryName} category created successfully`,
+    });
+  };
+
+  const toggleCategory = (categoryValue: string) => {
+    setSelectedCategories(prev => 
+      prev.includes(categoryValue)
+        ? prev.filter(c => c !== categoryValue)
+        : [...prev, categoryValue]
+    );
   };
 
   return (
@@ -120,24 +153,72 @@ export const ExpenseForm = ({ onAddTransaction }: ExpenseFormProps) => {
               </div>
             </div>
 
-            {/* Category */}
+            {/* Categories */}
             <div className="space-y-2">
-              <Label htmlFor="category">Category</Label>
-              <Select value={category} onValueChange={setCategory}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select category" />
-                </SelectTrigger>
-                <SelectContent>
-                  {categories.map((cat) => (
-                    <SelectItem key={cat.value} value={cat.value}>
-                      <div className="flex items-center gap-2">
-                        <span>{cat.icon}</span>
-                        <span>{cat.label}</span>
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="flex items-center justify-between">
+                <Label>Categories</Label>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowAddCategory(!showAddCategory)}
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
+              
+              {showAddCategory && (
+                <div className="space-y-2 p-3 border rounded-lg">
+                  <Input
+                    placeholder="Category name"
+                    value={newCategoryName}
+                    onChange={(e) => setNewCategoryName(e.target.value)}
+                  />
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="Icon (emoji)"
+                      value={newCategoryIcon}
+                      onChange={(e) => setNewCategoryIcon(e.target.value)}
+                      className="flex-1"
+                    />
+                    <Input
+                      type="color"
+                      value={newCategoryColor}
+                      onChange={(e) => setNewCategoryColor(e.target.value)}
+                      className="w-16"
+                    />
+                  </div>
+                  <div className="flex gap-2">
+                    <Button type="button" size="sm" onClick={handleAddCategory}>
+                      Add
+                    </Button>
+                    <Button type="button" size="sm" variant="outline" onClick={() => setShowAddCategory(false)}>
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto">
+                {categories.map((cat) => (
+                  <button
+                    key={cat.value}
+                    type="button"
+                    onClick={() => toggleCategory(cat.value)}
+                    className={`flex items-center gap-2 px-3 py-2 rounded-md border text-sm transition-colors ${
+                      selectedCategories.includes(cat.value)
+                        ? 'bg-primary text-primary-foreground border-primary'
+                        : 'bg-background hover:bg-accent'
+                    }`}
+                  >
+                    <span>{cat.icon}</span>
+                    <span>{cat.label}</span>
+                    {selectedCategories.includes(cat.value) && (
+                      <X className="h-3 w-3" />
+                    )}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
 
