@@ -1,10 +1,9 @@
-
 import { useMemo } from 'react';
 import { Calendar, ArrowUpDown } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Transaction } from '@/pages/Index';
-import { startOfMonth, endOfMonth, isWithinInterval, format, groupBy } from 'date-fns';
+import { startOfMonth, endOfMonth, isWithinInterval, format } from 'date-fns';
 
 interface MonthlyTableProps {
   transactions: Transaction[];
