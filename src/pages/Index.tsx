@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { DashboardHeader } from '@/components/DashboardHeader';
 import { QuickStats } from '@/components/QuickStats';
@@ -7,6 +6,7 @@ import { TransactionList } from '@/components/TransactionList';
 import { MonthlyChart } from '@/components/MonthlyChart';
 import { CategoryBreakdown } from '@/components/CategoryBreakdown';
 import { MonthlyTable } from '@/components/MonthlyTable';
+import AuthHeader from '@/components/AuthHeader';
 
 export interface Transaction {
   id: string;
@@ -80,6 +80,7 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      <AuthHeader />
       <div className="max-w-7xl mx-auto px-4 py-6 space-y-8">
         {/* Header */}
         <DashboardHeader selectedDate={selectedDate} onDateChange={setSelectedDate} />
