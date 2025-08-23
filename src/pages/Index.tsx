@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { DashboardHeader } from '@/components/DashboardHeader';
 import { QuickStats } from '@/components/QuickStats';
@@ -7,6 +8,8 @@ import { MonthlyChart } from '@/components/MonthlyChart';
 import { CategoryBreakdown } from '@/components/CategoryBreakdown';
 import { MonthlyTable } from '@/components/MonthlyTable';
 import AuthHeader from '@/components/AuthHeader';
+import { useAuth } from '@/contexts/AuthContext';
+import { firestoreService } from '@/services/firestoreService';
 
 export interface Transaction {
   id: string;
@@ -35,48 +38,79 @@ const defaultCategories: Category[] = [
 ];
 
 const Index = () => {
+  const { user } = useAuth();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [categories, setCategories] = useState<Category[]>(defaultCategories);
+  const [loading, setLoading] = useState(true);
 
-  // Load data from localStorage on mount
+  // Subscribe to user's data when authenticated
   useEffect(() => {
-    const savedTransactions = localStorage.getItem('financeTrackerTransactions');
-    const savedCategories = localStorage.getItem('financeTrackerCategories');
-    
-    if (savedTransactions) {
-      setTransactions(JSON.parse(savedTransactions));
-    }
-    
-    if (savedCategories) {
-      setCategories(JSON.parse(savedCategories));
-    }
-  }, []);
+    if (!user) return;
 
-  // Save data to localStorage whenever they change
-  useEffect(() => {
-    localStorage.setItem('financeTrackerTransactions', JSON.stringify(transactions));
-  }, [transactions]);
+    const unsubscribeTransactions = firestoreService.subscribeToTransactions(
+      user.uid,
+      (userTransactions) => {
+        setTransactions(userTransactions);
+        setLoading(false);
+      }
+    );
 
-  useEffect(() => {
-    localStorage.setItem('financeTrackerCategories', JSON.stringify(categories));
-  }, [categories]);
+    const unsubscribeCategories = firestoreService.subscribeToCategories(
+      user.uid,
+      (userCategories) => {
+        if (userCategories.length > 0) {
+          setCategories([...defaultCategories, ...userCategories]);
+        }
+      }
+    );
 
-  const addTransaction = (transaction: Omit<Transaction, 'id'>) => {
-    const newTransaction: Transaction = {
-      ...transaction,
-      id: Date.now().toString(),
+    return () => {
+      unsubscribeTransactions();
+      unsubscribeCategories();
     };
-    setTransactions(prev => [newTransaction, ...prev]);
+  }, [user]);
+
+  const addTransaction = async (transaction: Omit<Transaction, 'id'>) => {
+    if (!user) return;
+    
+    try {
+      await firestoreService.addTransaction(user.uid, transaction);
+      // Transaction will be added to state via the real-time listener
+    } catch (error) {
+      console.error('Error adding transaction:', error);
+    }
   };
 
-  const deleteTransaction = (id: string) => {
-    setTransactions(prev => prev.filter(t => t.id !== id));
+  const deleteTransaction = async (id: string) => {
+    if (!user) return;
+    
+    try {
+      await firestoreService.deleteTransaction(user.uid, id);
+      // Transaction will be removed from state via the real-time listener
+    } catch (error) {
+      console.error('Error deleting transaction:', error);
+    }
   };
 
-  const addCategory = (category: Category) => {
-    setCategories(prev => [...prev, category]);
+  const addCategory = async (category: Category) => {
+    if (!user) return;
+    
+    try {
+      await firestoreService.addCategory(user.uid, category);
+      // Category will be added to state via the real-time listener
+    } catch (error) {
+      console.error('Error adding category:', error);
+    }
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
