@@ -1,6 +1,6 @@
 
 import { useState } from 'react';
-import { Check, X, Calendar } from 'lucide-react';
+import { Check, X, Calendar, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -12,6 +12,7 @@ interface TransactionEditFormProps {
   transaction: Transaction;
   categories: Array<{ value: string; label: string; icon: string; color: string }>;
   onSave: (updatedTransaction: Transaction) => void;
+  onDelete: (transactionId: string) => void;
   onCancel: () => void;
 }
 
@@ -19,6 +20,7 @@ export const TransactionEditForm = ({
   transaction, 
   categories, 
   onSave, 
+  onDelete,
   onCancel 
 }: TransactionEditFormProps) => {
   const [amount, setAmount] = useState(transaction.amount.toString());
@@ -65,6 +67,14 @@ export const TransactionEditForm = ({
     toast({
       title: "Transaction Updated",
       description: "Transaction updated successfully",
+    });
+  };
+
+  const handleDelete = () => {
+    onDelete(transaction.id);
+    toast({
+      title: "Transaction Deleted",
+      description: "Transaction deleted successfully",
     });
   };
 
@@ -159,14 +169,26 @@ export const TransactionEditForm = ({
         />
       </div>
 
-      <div className="flex gap-2">
-        <Button type="submit" size="sm">
-          <Check className="h-4 w-4 mr-1" />
-          Save
-        </Button>
-        <Button type="button" size="sm" variant="outline" onClick={onCancel}>
-          <X className="h-4 w-4 mr-1" />
-          Cancel
+      <div className="flex gap-2 justify-between">
+        <div className="flex gap-2">
+          <Button type="submit" size="sm">
+            <Check className="h-4 w-4 mr-1" />
+            Save
+          </Button>
+          <Button type="button" size="sm" variant="outline" onClick={onCancel}>
+            <X className="h-4 w-4 mr-1" />
+            Cancel
+          </Button>
+        </div>
+        
+        <Button 
+          type="button" 
+          size="sm" 
+          variant="destructive" 
+          onClick={handleDelete}
+        >
+          <Trash2 className="h-4 w-4 mr-1" />
+          Delete
         </Button>
       </div>
     </form>

@@ -46,6 +46,27 @@ export const TransactionList = ({
     };
   };
 
+  const getCategoryColors = (categoryString: string) => {
+    const categoryValues = categoryString.split(',').map(c => c.trim());
+    return categoryValues.map(catValue => getCategoryInfo(catValue).color);
+  };
+
+  const getCardStyle = (categoryString: string) => {
+    const colors = getCategoryColors(categoryString);
+    if (colors.length === 1) {
+      return { borderLeft: `4px solid ${colors[0]}` };
+    } else {
+      const gradientColors = colors.join(', ');
+      return { 
+        borderLeft: `4px solid transparent`,
+        backgroundImage: `linear-gradient(to right, ${gradientColors})`,
+        backgroundClip: 'padding-box',
+        borderImageSource: `linear-gradient(to right, ${gradientColors})`,
+        borderImageSlice: 1
+      };
+    }
+  };
+
   const renderCategoryIndicator = (categoryString: string) => {
     const categoryValues = categoryString.split(',').map(c => c.trim());
     
@@ -122,7 +143,8 @@ export const TransactionList = ({
           {filteredTransactions.map((transaction) => (
             <div
               key={transaction.id}
-              className="flex items-center justify-between p-3 rounded-lg surface-variant interactive group"
+              className="flex items-center justify-between p-3 rounded-lg surface-variant interactive group relative"
+              style={getCardStyle(transaction.category)}
             >
               <div className="flex items-center gap-3 flex-1">
                 {renderCategoryIndicator(transaction.category)}

@@ -50,6 +50,27 @@ export const MonthlyTable = ({
     };
   };
 
+  const getCategoryColors = (categoryString: string) => {
+    const categoryValues = categoryString.split(',').map(c => c.trim());
+    return categoryValues.map(catValue => getCategoryInfo(catValue).color);
+  };
+
+  const getRowStyle = (categoryString: string) => {
+    const colors = getCategoryColors(categoryString);
+    if (colors.length === 1) {
+      return { borderLeft: `4px solid ${colors[0]}` };
+    } else {
+      const gradientColors = colors.join(', ');
+      return { 
+        borderLeft: `4px solid transparent`,
+        backgroundImage: `linear-gradient(to bottom, ${gradientColors})`,
+        backgroundClip: 'padding-box',
+        borderImageSource: `linear-gradient(to bottom, ${gradientColors})`,
+        borderImageSlice: 1
+      };
+    }
+  };
+
   const renderCategoryCell = (categoryString: string) => {
     const categoryValues = categoryString.split(',');
     
@@ -138,7 +159,11 @@ export const MonthlyTable = ({
               <TableBody>
                 {monthlyTransactions.map((transaction) => (
                   <>
-                    <TableRow key={transaction.id}>
+                    <TableRow 
+                      key={transaction.id}
+                      style={getRowStyle(transaction.category)}
+                      className="relative"
+                    >
                       <TableCell className="font-medium">
                         {format(new Date(transaction.date), 'MMM dd')}
                       </TableCell>
@@ -180,6 +205,10 @@ export const MonthlyTable = ({
                             categories={categories}
                             onSave={(updatedTransaction) => {
                               onUpdateTransaction(updatedTransaction);
+                              setEditingTransaction(null);
+                            }}
+                            onDelete={(transactionId) => {
+                              onDeleteTransaction(transactionId);
                               setEditingTransaction(null);
                             }}
                             onCancel={() => setEditingTransaction(null)}
