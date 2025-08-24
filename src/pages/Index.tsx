@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { DashboardHeader } from '@/components/DashboardHeader';
 import { QuickStats } from '@/components/QuickStats';
@@ -88,9 +87,19 @@ const Index = () => {
     try {
       console.log('Index: Adding transaction');
       await firestoreService.addTransaction(user.uid, transaction);
-      // Transaction will be added to state via the real-time listener
     } catch (error) {
       console.error('Index: Error adding transaction:', error);
+    }
+  };
+
+  const updateTransaction = async (transaction: Transaction) => {
+    if (!user) return;
+    
+    try {
+      console.log('Index: Updating transaction:', transaction.id);
+      await firestoreService.updateTransaction(user.uid, transaction);
+    } catch (error) {
+      console.error('Index: Error updating transaction:', error);
     }
   };
 
@@ -100,7 +109,6 @@ const Index = () => {
     try {
       console.log('Index: Deleting transaction:', id);
       await firestoreService.deleteTransaction(user.uid, id);
-      // Transaction will be removed from state via the real-time listener
     } catch (error) {
       console.error('Index: Error deleting transaction:', error);
     }
@@ -112,9 +120,30 @@ const Index = () => {
     try {
       console.log('Index: Adding category');
       await firestoreService.addCategory(user.uid, category);
-      // Category will be added to state via the real-time listener
     } catch (error) {
       console.error('Index: Error adding category:', error);
+    }
+  };
+
+  const updateCategory = async (oldValue: string, newCategory: Category) => {
+    if (!user) return;
+    
+    try {
+      console.log('Index: Updating category:', oldValue, 'to:', newCategory.value);
+      await firestoreService.updateCategory(user.uid, oldValue, newCategory);
+    } catch (error) {
+      console.error('Index: Error updating category:', error);
+    }
+  };
+
+  const deleteCategory = async (categoryValue: string) => {
+    if (!user) return;
+    
+    try {
+      console.log('Index: Deleting category:', categoryValue);
+      await firestoreService.deleteCategory(user.uid, categoryValue);
+    } catch (error) {
+      console.error('Index: Error deleting category:', error);
     }
   };
 
@@ -135,48 +164,43 @@ const Index = () => {
     <div className="min-h-screen bg-background">
       <AuthHeader />
       <div className="max-w-7xl mx-auto px-4 py-6 space-y-8">
-        {/* Header */}
         <DashboardHeader selectedDate={selectedDate} onDateChange={setSelectedDate} />
-        
-        {/* Quick Stats */}
         <QuickStats transactions={transactions} selectedDate={selectedDate} />
         
-        {/* Main Content Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Left Column - Forms and Charts */}
           <div className="lg:col-span-2 space-y-8">
-            {/* Expense Form */}
             <ExpenseForm 
               onAddTransaction={addTransaction} 
               categories={categories}
               onAddCategory={addCategory}
+              onUpdateCategory={updateCategory}
+              onDeleteCategory={deleteCategory}
             />
             
-            {/* Monthly Chart */}
             <MonthlyChart transactions={transactions} selectedDate={selectedDate} />
             
-            {/* Monthly Table */}
             <MonthlyTable 
               transactions={transactions} 
               selectedDate={selectedDate}
               categories={categories}
+              onUpdateTransaction={updateTransaction}
+              onDeleteTransaction={deleteTransaction}
             />
           </div>
           
-          {/* Right Column - Breakdown and Transactions */}
           <div className="space-y-8">
-            {/* Category Breakdown */}
             <CategoryBreakdown 
               transactions={transactions} 
               selectedDate={selectedDate}
               categories={categories}
+              onDeleteTransaction={deleteTransaction}
             />
             
-            {/* Recent Transactions */}
             <TransactionList 
               transactions={transactions}
               onDeleteTransaction={deleteTransaction}
               selectedDate={selectedDate}
+              categories={categories}
             />
           </div>
         </div>

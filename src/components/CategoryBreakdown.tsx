@@ -1,17 +1,32 @@
-import { useMemo } from 'react';
+
+import { useMemo, useState } from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { PieChart as PieChartIcon } from 'lucide-react';
 import { Transaction } from '@/pages/Index';
+import { CategoryDetailModal } from './CategoryDetailModal';
 import { startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
 
 interface CategoryBreakdownProps {
   transactions: Transaction[];
   selectedDate: Date;
   categories: Array<{ value: string; label: string; icon: string; color: string }>;
+  onDeleteTransaction: (id: string) => void;
 }
 
-export const CategoryBreakdown = ({ transactions, selectedDate, categories }: CategoryBreakdownProps) => {
+export const CategoryBreakdown = ({ 
+  transactions, 
+  selectedDate, 
+  categories,
+  onDeleteTransaction
+}: CategoryBreakdownProps) => {
+  const [categoryDetail, setCategoryDetail] = useState<{
+    value: string;
+    label: string;
+    icon: string;
+    color: string;
+  } | null>(null);
+
   const categoryData = useMemo(() => {
     const monthStart = startOfMonth(selectedDate);
     const monthEnd = endOfMonth(selectedDate);
@@ -45,7 +60,9 @@ export const CategoryBreakdown = ({ transactions, selectedDate, categories }: Ca
           name: categoryInfo.label,
           value: amount,
           color: categoryInfo.color,
-          percentage: 0 // Will be calculated after we have the total
+          categoryValue: categoryValue,
+          categoryInfo: categoryInfo,
+          percentage: 0
         };
       })
       .sort((a, b) => b.value - a.value);
@@ -53,7 +70,6 @@ export const CategoryBreakdown = ({ transactions, selectedDate, categories }: Ca
 
   const totalExpenses = categoryData.reduce((sum, item) => sum + item.value, 0);
   
-  // Calculate percentages
   const dataWithPercentages = categoryData.map(item => ({
     ...item,
     percentage: totalExpenses > 0 ? (item.value / totalExpenses) * 100 : 0
@@ -85,7 +101,7 @@ export const CategoryBreakdown = ({ transactions, selectedDate, categories }: Ca
         <div className="surface-elevated border rounded-lg p-3 shadow-lg">
           <p className="font-medium">{data.name}</p>
           <p className="text-sm text-muted-foreground">
-            ${data.value.toFixed(2)} ({data.percentage.toFixed(1)}%)
+            ₹{data.value.toFixed(2)} ({data.percentage.toFixed(1)}%)
           </p>
         </div>
       );
@@ -94,59 +110,75 @@ export const CategoryBreakdown = ({ transactions, selectedDate, categories }: Ca
   };
 
   return (
-    <Card className="surface-elevated shadow-sm">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <PieChartIcon className="h-5 w-5 text-primary" />
-          Category Breakdown
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-4">
-          {/* Pie Chart */}
-          <div className="h-48">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={dataWithPercentages}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={40}
-                  outerRadius={80}
-                  paddingAngle={2}
-                  dataKey="value"
+    <>
+      <Card className="surface-elevated shadow-sm">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <PieChartIcon className="h-5 w-5 text-primary" />
+            Category Breakdown
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <div className="h-48">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={dataWithPercentages}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={40}
+                    outerRadius={80}
+                    paddingAngle={2}
+                    dataKey="value"
+                  >
+                    {dataWithPercentages.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip content={<CustomTooltip />} />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+            
+            <div className="space-y-2">
+              {dataWithPercentages.map((category, index) => (
+                <button
+                  key={index}
+                  onClick={() => setCategoryDetail(category.categoryInfo)}
+                  className="w-full flex items-center justify-between p-2 rounded hover:bg-accent transition-colors"
                 >
-                  {dataWithPercentages.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip content={<CustomTooltip />} />
-              </PieChart>
-            </ResponsiveContainer>
+                  <div className="flex items-center gap-2">
+                    <div 
+                      className="w-3 h-3 rounded-full" 
+                      style={{ backgroundColor: category.color }}
+                    />
+                    <span className="text-sm">{category.name}</span>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm font-medium">₹{category.value.toFixed(2)}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {category.percentage.toFixed(1)}%
+                    </p>
+                  </div>
+                </button>
+              ))}
+            </div>
           </div>
-          
-          {/* Category List */}
-          <div className="space-y-2">
-            {dataWithPercentages.map((category, index) => (
-              <div key={index} className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div 
-                    className="w-3 h-3 rounded-full" 
-                    style={{ backgroundColor: category.color }}
-                  />
-                  <span className="text-sm">{category.name}</span>
-                </div>
-                <div className="text-right">
-                  <p className="text-sm font-medium">${category.value.toFixed(2)}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {category.percentage.toFixed(1)}%
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
+
+      {categoryDetail && (
+        <CategoryDetailModal
+          categoryValue={categoryDetail.value}
+          categoryLabel={categoryDetail.label}
+          categoryIcon={categoryDetail.icon}
+          categoryColor={categoryDetail.color}
+          transactions={transactions}
+          onClose={() => setCategoryDetail(null)}
+          onDeleteTransaction={onDeleteTransaction}
+        />
+      )}
+    </>
   );
 };

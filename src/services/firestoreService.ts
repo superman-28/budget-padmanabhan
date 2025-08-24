@@ -40,6 +40,22 @@ export const firestoreService = {
     }
   },
 
+  async updateTransaction(userId: string, transaction: Transaction) {
+    try {
+      console.log('FirestoreService: Updating transaction:', transaction.id, 'for user:', userId);
+      const transactionRef = doc(db, 'users', userId, 'transactions', transaction.id);
+      const { id, ...transactionData } = transaction;
+      await updateDoc(transactionRef, {
+        ...transactionData,
+        updatedAt: Timestamp.now(),
+      });
+      console.log('FirestoreService: Transaction updated successfully');
+    } catch (error) {
+      console.error('FirestoreService: Error updating transaction:', error);
+      throw error;
+    }
+  },
+
   async deleteTransaction(userId: string, transactionId: string) {
     try {
       console.log('FirestoreService: Deleting transaction:', transactionId, 'for user:', userId);
@@ -71,7 +87,6 @@ export const firestoreService = {
       },
       (error) => {
         console.error('FirestoreService: Error in transactions subscription:', error);
-        // Still call callback with empty array to prevent infinite loading
         callback([]);
       }
     );
@@ -87,6 +102,76 @@ export const firestoreService = {
       return docRef.id;
     } catch (error) {
       console.error('FirestoreService: Error adding category:', error);
+      throw error;
+    }
+  },
+
+  async updateCategory(userId: string, oldValue: string, newCategory: Category) {
+    try {
+      console.log('FirestoreService: Updating category:', oldValue, 'to:', newCategory.value, 'for user:', userId);
+      
+      // Find the category document by value
+      const userCategoriesRef = collection(db, 'users', userId, 'categories');
+      const q = query(userCategoriesRef, where('value', '==', oldValue));
+      const snapshot = await getDocs(q);
+      
+      if (!snapshot.empty) {
+        const categoryDoc = snapshot.docs[0];
+        const categoryRef = doc(db, 'users', userId, 'categories', categoryDoc.id);
+        await updateDoc(categoryRef, newCategory);
+        
+        // Update all transactions that use this category
+        if (oldValue !== newCategory.value) {
+          const userTransactionsRef = collection(db, 'users', userId, 'transactions');
+          const transactionsSnapshot = await getDocs(userTransactionsRef);
+          
+          const updatePromises = transactionsSnapshot.docs
+            .filter(doc => {
+              const categoryString = doc.data().category || '';
+              return categoryString.split(',').map((c: string) => c.trim()).includes(oldValue);
+            })
+            .map(doc => {
+              const categoryString = doc.data().category || '';
+              const categories = categoryString.split(',').map((c: string) => c.trim());
+              const updatedCategories = categories.map((c: string) => 
+                c === oldValue ? newCategory.value : c
+              );
+              
+              const transactionRef = doc.ref;
+              return updateDoc(transactionRef, {
+                category: updatedCategories.join(','),
+                updatedAt: Timestamp.now(),
+              });
+            });
+          
+          await Promise.all(updatePromises);
+        }
+      }
+      
+      console.log('FirestoreService: Category updated successfully');
+    } catch (error) {
+      console.error('FirestoreService: Error updating category:', error);
+      throw error;
+    }
+  },
+
+  async deleteCategory(userId: string, categoryValue: string) {
+    try {
+      console.log('FirestoreService: Deleting category:', categoryValue, 'for user:', userId);
+      
+      // Find and delete the category document
+      const userCategoriesRef = collection(db, 'users', userId, 'categories');
+      const q = query(userCategoriesRef, where('value', '==', categoryValue));
+      const snapshot = await getDocs(q);
+      
+      if (!snapshot.empty) {
+        const categoryDoc = snapshot.docs[0];
+        await deleteDoc(categoryDoc.ref);
+      }
+      
+      console.log('FirestoreService: Category deleted successfully');
+    } catch (error) {
+      console.error('FirestoreService: Error deleting category:', error);
       throw error;
     }
   },
@@ -108,7 +193,6 @@ export const firestoreService = {
       },
       (error) => {
         console.error('FirestoreService: Error in categories subscription:', error);
-        // Still call callback with empty array to prevent issues
         callback([]);
       }
     );
