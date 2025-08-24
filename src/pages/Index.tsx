@@ -44,13 +44,22 @@ const Index = () => {
   const [categories, setCategories] = useState<Category[]>(defaultCategories);
   const [loading, setLoading] = useState(true);
 
+  console.log('Index: Component rendering with user:', user?.email);
+
   // Subscribe to user's data when authenticated
   useEffect(() => {
-    if (!user) return;
+    if (!user) {
+      console.log('Index: No user found in useEffect');
+      return;
+    }
+
+    console.log('Index: Setting up Firestore subscriptions for user:', user.uid);
+    setLoading(true);
 
     const unsubscribeTransactions = firestoreService.subscribeToTransactions(
       user.uid,
       (userTransactions) => {
+        console.log('Index: Received transactions:', userTransactions.length);
         setTransactions(userTransactions);
         setLoading(false);
       }
@@ -59,6 +68,7 @@ const Index = () => {
     const unsubscribeCategories = firestoreService.subscribeToCategories(
       user.uid,
       (userCategories) => {
+        console.log('Index: Received categories:', userCategories.length);
         if (userCategories.length > 0) {
           setCategories([...defaultCategories, ...userCategories]);
         }
@@ -66,6 +76,7 @@ const Index = () => {
     );
 
     return () => {
+      console.log('Index: Cleaning up Firestore subscriptions');
       unsubscribeTransactions();
       unsubscribeCategories();
     };
@@ -75,10 +86,11 @@ const Index = () => {
     if (!user) return;
     
     try {
+      console.log('Index: Adding transaction');
       await firestoreService.addTransaction(user.uid, transaction);
       // Transaction will be added to state via the real-time listener
     } catch (error) {
-      console.error('Error adding transaction:', error);
+      console.error('Index: Error adding transaction:', error);
     }
   };
 
@@ -86,10 +98,11 @@ const Index = () => {
     if (!user) return;
     
     try {
+      console.log('Index: Deleting transaction:', id);
       await firestoreService.deleteTransaction(user.uid, id);
       // Transaction will be removed from state via the real-time listener
     } catch (error) {
-      console.error('Error deleting transaction:', error);
+      console.error('Index: Error deleting transaction:', error);
     }
   };
 
@@ -97,21 +110,27 @@ const Index = () => {
     if (!user) return;
     
     try {
+      console.log('Index: Adding category');
       await firestoreService.addCategory(user.uid, category);
       // Category will be added to state via the real-time listener
     } catch (error) {
-      console.error('Error adding category:', error);
+      console.error('Index: Error adding category:', error);
     }
   };
 
   if (loading) {
+    console.log('Index: Showing loading state');
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-4 text-muted-foreground">Loading your financial data...</p>
+        </div>
       </div>
     );
   }
 
+  console.log('Index: Rendering main dashboard');
   return (
     <div className="min-h-screen bg-background">
       <AuthHeader />

@@ -25,7 +25,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    console.log('AuthProvider: Setting up auth state listener');
     const unsubscribe = onAuthStateChanged(auth, (user) => {
+      console.log('AuthProvider: Auth state changed:', user ? `User: ${user.email}` : 'No user');
       setUser(user);
       setLoading(false);
     });
@@ -35,17 +37,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signInWithGoogle = async () => {
     try {
-      await signInWithPopup(auth, googleProvider);
+      console.log('AuthProvider: Starting Google sign-in');
+      const result = await signInWithPopup(auth, googleProvider);
+      console.log('AuthProvider: Google sign-in successful:', result.user.email);
     } catch (error) {
-      console.error('Error signing in with Google:', error);
+      console.error('AuthProvider: Error signing in with Google:', error);
     }
   };
 
   const logout = async () => {
     try {
+      console.log('AuthProvider: Signing out');
       await signOut(auth);
+      console.log('AuthProvider: Sign out successful');
     } catch (error) {
-      console.error('Error signing out:', error);
+      console.error('AuthProvider: Error signing out:', error);
     }
   };
 
@@ -55,6 +61,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     signInWithGoogle,
     logout,
   };
+
+  console.log('AuthProvider: Rendering with state:', { hasUser: !!user, loading });
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
