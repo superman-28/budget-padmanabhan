@@ -31,25 +31,33 @@ export const CategoryBreakdown = ({
     const monthStart = startOfMonth(selectedDate);
     const monthEnd = endOfMonth(selectedDate);
     
-    const monthExpenses = transactions.filter(t => 
-      t.type === 'expense' && 
+    const monthTransactions = transactions.filter(t => 
       isWithinInterval(new Date(t.date), { start: monthStart, end: monthEnd })
     );
     
-    const categoryTotals: Record<string, number> = {};
+    const categoryTotals: Record<string, { expenses: number; income: number }> = {};
     
-    monthExpenses.forEach(t => {
+    monthTransactions.forEach(t => {
       const categoryValues = t.category.split(',');
       const amountPerCategory = t.amount / categoryValues.length;
       
       categoryValues.forEach(catValue => {
         const trimmedCat = catValue.trim();
-        categoryTotals[trimmedCat] = (categoryTotals[trimmedCat] || 0) + amountPerCategory;
+        if (!categoryTotals[trimmedCat]) {
+          categoryTotals[trimmedCat] = { expenses: 0, income: 0 };
+        }
+        
+        if (t.type === 'expense') {
+          categoryTotals[trimmedCat].expenses += amountPerCategory;
+        } else {
+          categoryTotals[trimmedCat].income += amountPerCategory;
+        }
       });
     });
     
     return Object.entries(categoryTotals)
-      .map(([categoryValue, amount]) => {
+      .map(([categoryValue, totals]) => {
+        const netAmount = totals.expenses - totals.income;
         const categoryInfo = categories.find(cat => cat.value === categoryValue) || {
           value: categoryValue,
           label: categoryValue,
@@ -59,24 +67,25 @@ export const CategoryBreakdown = ({
         
         return {
           name: categoryInfo.label,
-          value: amount,
+          value: netAmount,
           color: categoryInfo.color,
           categoryValue: categoryValue,
           categoryInfo: categoryInfo,
           percentage: 0
         };
       })
+      .filter(item => item.value > 0) // Only show categories with net expenses
       .sort((a, b) => b.value - a.value);
   }, [transactions, selectedDate, categories]);
 
-  const totalExpenses = categoryData.reduce((sum, item) => sum + item.value, 0);
+  const totalNetExpenses = categoryData.reduce((sum, item) => sum + item.value, 0);
   
   const dataWithPercentages = categoryData.map(item => ({
     ...item,
-    percentage: totalExpenses > 0 ? (item.value / totalExpenses) * 100 : 0
+    percentage: totalNetExpenses > 0 ? (item.value / totalNetExpenses) * 100 : 0
   }));
 
-  if (totalExpenses === 0) {
+  if (totalNetExpenses === 0) {
     return (
       <Card className="surface-elevated shadow-sm">
         <CardHeader>
@@ -88,7 +97,7 @@ export const CategoryBreakdown = ({
         <CardContent>
           <div className="text-center py-8 text-muted-foreground">
             <PieChartIcon className="h-12 w-12 mx-auto mb-4 opacity-20" />
-            <p>No expenses this month</p>
+            <p>No net expenses this month</p>
           </div>
         </CardContent>
       </Card>
