@@ -51,6 +51,7 @@ export const CategoryBreakdown = ({
     return Object.entries(categoryTotals)
       .map(([categoryValue, amount]) => {
         const categoryInfo = categories.find(cat => cat.value === categoryValue) || {
+          value: categoryValue,
           label: categoryValue,
           icon: '📝',
           color: '#6b7280'

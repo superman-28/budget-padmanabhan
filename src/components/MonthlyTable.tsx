@@ -43,6 +43,7 @@ export const MonthlyTable = ({
 
   const getCategoryInfo = (categoryValue: string) => {
     return categories.find(cat => cat.value === categoryValue) || {
+      value: categoryValue,
       label: categoryValue,
       icon: '📝',
       color: '#6b7280'

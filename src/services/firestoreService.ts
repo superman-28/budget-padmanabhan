@@ -97,7 +97,12 @@ export const firestoreService = {
     try {
       console.log('FirestoreService: Adding category for user:', userId);
       const userCategoriesRef = collection(db, 'users', userId, 'categories');
-      const docRef = await addDoc(userCategoriesRef, categoryData);
+      const docRef = await addDoc(userCategoriesRef, {
+        value: categoryData.value,
+        label: categoryData.label,
+        icon: categoryData.icon,
+        color: categoryData.color,
+      });
       console.log('FirestoreService: Category added with ID:', docRef.id);
       return docRef.id;
     } catch (error) {
@@ -118,7 +123,12 @@ export const firestoreService = {
       if (!snapshot.empty) {
         const categoryDoc = snapshot.docs[0];
         const categoryRef = doc(db, 'users', userId, 'categories', categoryDoc.id);
-        await updateDoc(categoryRef, newCategory);
+        await updateDoc(categoryRef, {
+          value: newCategory.value,
+          label: newCategory.label,
+          icon: newCategory.icon,
+          color: newCategory.color,
+        });
         
         // Update all transactions that use this category
         if (oldValue !== newCategory.value) {
