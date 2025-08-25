@@ -31,10 +31,29 @@ export const CategoryDetailModal = ({
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }, [transactions, categoryValue]);
 
-  const totalAmount = categoryTransactions.reduce((sum, t) => {
-    const categoryCount = t.category.split(',').length;
-    return sum + (t.amount / categoryCount);
-  }, 0);
+  const { totalExpenses, totalIncome, totalAmount } = useMemo(() => {
+    let expenses = 0;
+    let income = 0;
+    
+    categoryTransactions.forEach(t => {
+      const categoryCount = t.category.split(',').length;
+      const allocatedAmount = t.amount / categoryCount;
+      
+      if (t.type === 'expense') {
+        expenses += allocatedAmount;
+      } else {
+        income += allocatedAmount;
+      }
+    });
+    
+    return {
+      totalExpenses: expenses,
+      totalIncome: income,
+      totalAmount: expenses + income
+    };
+  }, [categoryTransactions]);
+
+  const netAmount = totalExpenses - totalIncome;
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
@@ -48,9 +67,16 @@ export const CategoryDetailModal = ({
             <span className="text-2xl">{categoryIcon}</span>
             <div>
               <h2 className="text-xl font-bold">{categoryLabel}</h2>
-              <p className="text-sm text-muted-foreground">
-                {categoryTransactions.length} transactions • ₹{totalAmount.toFixed(2)}
-              </p>
+              <div className="text-sm text-muted-foreground space-y-1">
+                <p>{categoryTransactions.length} transactions • ₹{totalAmount.toFixed(2)}</p>
+                <div className="flex gap-4">
+                  <span className="text-red-600">Spent: ₹{totalExpenses.toFixed(2)}</span>
+                  <span className="text-green-600">Received: ₹{totalIncome.toFixed(2)}</span>
+                  {netAmount > 0 && (
+                    <span className="text-orange-600 font-medium">Owe: ₹{netAmount.toFixed(2)}</span>
+                  )}
+                </div>
+              </div>
             </div>
           </CardTitle>
           <Button variant="ghost" size="sm" onClick={onClose}>

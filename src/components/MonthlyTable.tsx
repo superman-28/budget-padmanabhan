@@ -60,13 +60,17 @@ export const MonthlyTable = ({
     if (colors.length === 1) {
       return { borderLeft: `4px solid ${colors[0]}` };
     } else {
-      const gradientColors = colors.join(', ');
+      // Split colors horizontally instead of gradient
+      const colorWidth = 100 / colors.length;
+      const colorStops = colors.map((color, index) => 
+        `${color} ${index * colorWidth}% ${(index + 1) * colorWidth}%`
+      ).join(', ');
+      
       return { 
         borderLeft: `4px solid transparent`,
-        backgroundImage: `linear-gradient(to bottom, ${gradientColors})`,
-        backgroundClip: 'padding-box',
-        borderImageSource: `linear-gradient(to bottom, ${gradientColors})`,
-        borderImageSlice: 1
+        backgroundImage: `linear-gradient(90deg, ${colorStops})`,
+        backgroundSize: '4px 100%',
+        backgroundRepeat: 'no-repeat'
       };
     }
   };
