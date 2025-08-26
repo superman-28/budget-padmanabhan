@@ -58,7 +58,7 @@ export const CategoryDetailModal = ({
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <Card className="w-full max-w-2xl max-h-[90vh] overflow-hidden surface-elevated flex flex-col">
+      <Card className="w-full max-w-2xl h-[90vh] sm:h-[80vh] surface-elevated flex flex-col">
         <CardHeader className="flex-row items-center justify-between space-y-0 pb-4 flex-shrink-0">
           <CardTitle className="flex items-center gap-3">
             <div 
@@ -69,13 +69,17 @@ export const CategoryDetailModal = ({
             <div>
               <h2 className="text-xl font-bold">{categoryLabel}</h2>
               <div className="text-sm text-muted-foreground space-y-1">
-                <p>{categoryTransactions.length} transactions • ₹{totalAmount.toFixed(2)}</p>
+                <div className="flex flex-wrap gap-2 items-center">
+                  <span>{categoryTransactions.length} transactions • ₹{totalAmount.toFixed(2)}</span>
+                  {netAmount > 0 && (
+                    <span className="text-orange-600 font-medium bg-orange-50 px-2 py-1 rounded text-xs">
+                      Owe: ₹{netAmount.toFixed(2)}
+                    </span>
+                  )}
+                </div>
                 <div className="flex gap-4">
                   <span className="text-red-600">Spent: ₹{totalExpenses.toFixed(2)}</span>
                   <span className="text-green-600">Received: ₹{totalIncome.toFixed(2)}</span>
-                  {netAmount > 0 && (
-                    <span className="text-orange-600 font-medium">Owe: ₹{netAmount.toFixed(2)}</span>
-                  )}
                 </div>
               </div>
             </div>
@@ -85,76 +89,78 @@ export const CategoryDetailModal = ({
           </Button>
         </CardHeader>
         
-        <CardContent className="flex-1 overflow-hidden p-0">
-          <ScrollArea className="h-full p-6">
-            {categoryTransactions.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                <Calendar className="h-12 w-12 mx-auto mb-4 opacity-20" />
-                <p>No transactions found for this category</p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {categoryTransactions.map((transaction) => {
-                  const categoryCount = transaction.category.split(',').length;
-                  const allocatedAmount = transaction.amount / categoryCount;
-                  
-                  return (
-                    <div
-                      key={transaction.id}
-                      className="flex items-center justify-between p-3 rounded-lg surface-variant"
-                    >
-                      <div className="flex-1">
-                        <p className="font-medium">{transaction.description}</p>
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
-                          <span>
-                            {isToday(new Date(transaction.date)) 
-                              ? 'Today' 
-                              : format(new Date(transaction.date), 'MMM d, yyyy')
-                            }
-                          </span>
-                          {categoryCount > 1 && (
-                            <>
-                              <span>•</span>
-                              <span>Split across {categoryCount} categories</span>
-                            </>
-                          )}
-                          <span>•</span>
-                          <span className={`font-medium ${
-                            transaction.type === 'expense' ? 'text-red-600' : 'text-green-600'
-                          }`}>
-                            {transaction.type}
-                          </span>
-                        </div>
-                      </div>
-                      
-                      <div className="flex items-center gap-2">
-                        <div className="text-right">
-                          <p className={`font-semibold ${
-                            transaction.type === 'expense' ? 'text-red-600' : 'text-green-600'
-                          }`}>
-                            {transaction.type === 'expense' ? '-' : '+'}₹{allocatedAmount.toFixed(2)}
-                          </p>
-                          {categoryCount > 1 && (
-                            <p className="text-xs text-muted-foreground">
-                              of ₹{transaction.amount.toFixed(2)}
-                            </p>
-                          )}
+        <CardContent className="flex-1 min-h-0 p-0">
+          <ScrollArea className="h-full">
+            <div className="p-6">
+              {categoryTransactions.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Calendar className="h-12 w-12 mx-auto mb-4 opacity-20" />
+                  <p>No transactions found for this category</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {categoryTransactions.map((transaction) => {
+                    const categoryCount = transaction.category.split(',').length;
+                    const allocatedAmount = transaction.amount / categoryCount;
+                    
+                    return (
+                      <div
+                        key={transaction.id}
+                        className="flex items-center justify-between p-3 rounded-lg surface-variant"
+                      >
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium truncate">{transaction.description}</p>
+                          <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1 flex-wrap">
+                            <span>
+                              {isToday(new Date(transaction.date)) 
+                                ? 'Today' 
+                                : format(new Date(transaction.date), 'MMM d, yyyy')
+                              }
+                            </span>
+                            {categoryCount > 1 && (
+                              <>
+                                <span>•</span>
+                                <span>Split across {categoryCount} categories</span>
+                              </>
+                            )}
+                            <span>•</span>
+                            <span className={`font-medium ${
+                              transaction.type === 'expense' ? 'text-red-600' : 'text-green-600'
+                            }`}>
+                              {transaction.type}
+                            </span>
+                          </div>
                         </div>
                         
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => onDeleteTransaction(transaction.id)}
-                          className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          <div className="text-right">
+                            <p className={`font-semibold ${
+                              transaction.type === 'expense' ? 'text-red-600' : 'text-green-600'
+                            }`}>
+                              {transaction.type === 'expense' ? '-' : '+'}₹{allocatedAmount.toFixed(2)}
+                            </p>
+                            {categoryCount > 1 && (
+                              <p className="text-xs text-muted-foreground">
+                                of ₹{transaction.amount.toFixed(2)}
+                              </p>
+                            )}
+                          </div>
+                          
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => onDeleteTransaction(transaction.id)}
+                            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </ScrollArea>
         </CardContent>
       </Card>
