@@ -26,31 +26,82 @@ export const userLinkingService = {
   async linkCategoryToUser(ownerUserId: string, ownerEmail: string, categoryValue: string, linkedEmail: string) {
     try {
       console.log('UserLinkingService: Linking category to user by email:', linkedEmail);
+      console.log('UserLinkingService: Owner details:', { ownerUserId, ownerEmail, categoryValue });
+      
+      // Normalize email (trim and lowercase)
+      const normalizedEmail = linkedEmail.trim().toLowerCase();
+      console.log('UserLinkingService: Normalized email:', normalizedEmail);
+      
+      // Check if trying to link to self
+      if (normalizedEmail === ownerEmail.toLowerCase()) {
+        throw new Error('You cannot link a category to yourself');
+      }
       
       // Find the linked user by email
       const usersRef = collection(db, 'users');
-      const q = query(usersRef, where('email', '==', linkedEmail));
+      const q = query(usersRef, where('email', '==', normalizedEmail));
       const snapshot = await getDocs(q);
       
+      console.log('UserLinkingService: Found users with email:', snapshot.size);
+      
       if (snapshot.empty) {
-        throw new Error('User not found with that email address');
+        // Try with original case
+        const qOriginal = query(usersRef, where('email', '==', linkedEmail.trim()));
+        const snapshotOriginal = await getDocs(qOriginal);
+        
+        console.log('UserLinkingService: Found users with original case email:', snapshotOriginal.size);
+        
+        if (snapshotOriginal.empty) {
+          throw new Error(`User not found with email address: ${linkedEmail}. Make sure the user has signed up to the app.`);
+        }
+        
+        // Use the original case result
+        const linkedUserDoc = snapshotOriginal.docs[0];
+        const linkedUserId = linkedUserDoc.id;
+        console.log('UserLinkingService: Found user ID:', linkedUserId);
+        
+        return await this.createCategoryLink(ownerUserId, ownerEmail, categoryValue, linkedUserId, linkedEmail, linkedUserDoc.data().email);
       }
       
       const linkedUserDoc = snapshot.docs[0];
       const linkedUserId = linkedUserDoc.id;
+      console.log('UserLinkingService: Found user ID:', linkedUserId);
+      
+      return await this.createCategoryLink(ownerUserId, ownerEmail, categoryValue, linkedUserId, linkedEmail, linkedUserDoc.data().email);
+    } catch (error) {
+      console.error('UserLinkingService: Error linking category:', error);
+      throw error;
+    }
+  },
+
+  async createCategoryLink(ownerUserId: string, ownerEmail: string, categoryValue: string, linkedUserId: string, linkedEmail: string, actualEmail: string) {
+    try {
+      // Check if link already exists
+      const categoryLinksRef = collection(db, 'categoryLinks');
+      const existingLinkQuery = query(
+        categoryLinksRef,
+        where('ownerUserId', '==', ownerUserId),
+        where('linkedUserId', '==', linkedUserId),
+        where('categoryValue', '==', categoryValue)
+      );
+      const existingLinkSnapshot = await getDocs(existingLinkQuery);
+      
+      if (!existingLinkSnapshot.empty) {
+        throw new Error(`Category "${categoryValue}" is already linked with this user`);
+      }
       
       // Create the category link
-      const categoryLinksRef = collection(db, 'categoryLinks');
       const linkData = {
         categoryValue,
         ownerUserId,
         ownerEmail,
         linkedUserId,
-        linkedEmail,
+        linkedEmail: actualEmail,
         createdAt: Timestamp.now(),
       };
       
       const docRef = await addDoc(categoryLinksRef, linkData);
+      console.log('UserLinkingService: Category link created with ID:', docRef.id);
       
       // Send notification to linked user
       await notificationService.addNotification(linkedUserId, {
@@ -63,7 +114,7 @@ export const userLinkingService = {
       console.log('UserLinkingService: Category linked successfully with ID:', docRef.id);
       return docRef.id;
     } catch (error) {
-      console.error('UserLinkingService: Error linking category:', error);
+      console.error('UserLinkingService: Error creating category link:', error);
       throw error;
     }
   },
