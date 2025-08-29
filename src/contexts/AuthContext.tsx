@@ -1,7 +1,6 @@
-
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User, onAuthStateChanged, signInWithPopup, signOut } from 'firebase/auth';
-import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, setDoc, serverTimestamp, getDoc } from 'firebase/firestore';
 import { auth, googleProvider, db } from '@/lib/firebase';
 
 interface AuthContextType {
@@ -25,18 +24,37 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Store user info in Firestore
+  // Store user info in Firestore with all necessary details
   const storeUserInFirestore = async (user: User) => {
     try {
       console.log('AuthProvider: Storing user in Firestore:', user.email);
       const userDocRef = doc(db, 'users', user.uid);
-      await setDoc(userDocRef, {
+      
+      // Check if user document already exists
+      const userDoc = await getDoc(userDocRef);
+      const isNewUser = !userDoc.exists();
+      
+      const userData = {
+        uid: user.uid,
         email: user.email,
-        displayName: user.displayName,
+        displayName: user.displayName || user.email?.split('@')[0] || 'Unknown User',
         photoURL: user.photoURL,
         lastActive: serverTimestamp(),
-        createdAt: serverTimestamp(),
-      }, { merge: true });
+        emailVerified: user.emailVerified,
+        providerData: user.providerData.map(provider => ({
+          providerId: provider.providerId,
+          uid: provider.uid
+        }))
+      };
+
+      if (isNewUser) {
+        userData.createdAt = serverTimestamp();
+        console.log('AuthProvider: Creating new user document for:', user.email);
+      } else {
+        console.log('AuthProvider: Updating existing user document for:', user.email);
+      }
+
+      await setDoc(userDocRef, userData, { merge: true });
       console.log('AuthProvider: User stored successfully in Firestore');
     } catch (error) {
       console.error('AuthProvider: Error storing user in Firestore:', error);
