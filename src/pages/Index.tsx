@@ -9,6 +9,9 @@ import { MonthlyTable } from '@/components/MonthlyTable';
 import AuthHeader from '@/components/AuthHeader';
 import { useAuth } from '@/contexts/AuthContext';
 import { firestoreService } from '@/services/firestoreService';
+import { userLinkingService } from '@/services/userLinkingService';
+import { doc, setDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 
 export interface Transaction {
   id: string;
@@ -44,6 +47,19 @@ const Index = () => {
   const [loading, setLoading] = useState(true);
 
   console.log('Index: Component rendering with user:', user?.email);
+
+  // Store user info in Firestore for email lookup
+  useEffect(() => {
+    if (user) {
+      const userDocRef = doc(db, 'users', user.uid);
+      setDoc(userDocRef, {
+        email: user.email,
+        displayName: user.displayName,
+        photoURL: user.photoURL,
+        lastActive: new Date(),
+      }, { merge: true });
+    }
+  }, [user]);
 
   // Subscribe to user's data when authenticated
   useEffect(() => {
@@ -87,6 +103,13 @@ const Index = () => {
     try {
       console.log('Index: Adding transaction');
       await firestoreService.addTransaction(user.uid, transaction);
+      
+      // Share transaction with linked users
+      await userLinkingService.shareTransactionWithLinkedUsers(
+        user.uid,
+        user.email!,
+        transaction
+      );
     } catch (error) {
       console.error('Index: Error adding transaction:', error);
     }
