@@ -87,13 +87,13 @@ const Index = () => {
     
     try {
       console.log('Index: Adding transaction');
-      await firestoreService.addTransaction(user.uid, transaction);
+      const transactionId = await firestoreService.addTransaction(user.uid, transaction);
       
       // Share transaction with linked users
       await userLinkingService.shareTransactionWithLinkedUsers(
         user.uid,
         user.email!,
-        transaction
+        { ...transaction, id: transactionId }
       );
     } catch (error) {
       console.error('Index: Error adding transaction:', error);
@@ -106,6 +106,9 @@ const Index = () => {
     try {
       console.log('Index: Updating transaction:', transaction.id);
       await firestoreService.updateTransaction(user.uid, transaction);
+      
+      // Update shared transactions with linked users
+      await userLinkingService.updateSharedTransaction(user.uid, user.email!, transaction);
     } catch (error) {
       console.error('Index: Error updating transaction:', error);
     }
@@ -116,6 +119,11 @@ const Index = () => {
     
     try {
       console.log('Index: Deleting transaction:', id);
+      
+      // Delete shared transactions first
+      await userLinkingService.deleteSharedTransaction(user.uid, id);
+      
+      // Then delete the original transaction
       await firestoreService.deleteTransaction(user.uid, id);
     } catch (error) {
       console.error('Index: Error deleting transaction:', error);

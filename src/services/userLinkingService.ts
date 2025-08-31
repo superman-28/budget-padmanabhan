@@ -1,4 +1,3 @@
-
 import { 
   collection, 
   doc, 
@@ -6,7 +5,9 @@ import {
   getDocs, 
   query, 
   where,
-  Timestamp 
+  Timestamp,
+  updateDoc,
+  deleteDoc
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { notificationService } from './notificationService';
@@ -19,6 +20,15 @@ export interface CategoryLink {
   ownerEmail: string;
   linkedUserId: string;
   linkedEmail: string;
+  createdAt: any;
+}
+
+export interface SharedTransaction {
+  id: string;
+  originalTransactionId: string;
+  ownerUserId: string;
+  linkedUserId: string;
+  categoryValue: string;
   createdAt: any;
 }
 
@@ -147,15 +157,20 @@ export const userLinkingService = {
       
       console.log('UserLinkingService: Found', relevantTransactions.length, 'historical transactions to share');
       
-      // Add each relevant transaction to the linked user's account
+      // Add each relevant transaction to the linked user's account and track the sharing
       let sharedCount = 0;
       for (const transaction of relevantTransactions) {
         try {
-          await firestoreService.addTransaction(linkedUserId, {
+          // Add transaction to linked user
+          const sharedTransactionId = await firestoreService.addTransaction(linkedUserId, {
             ...transaction,
             description: `${transaction.description} (shared from ${ownerEmail})`,
             id: undefined, // Remove the original ID so a new one is generated
           });
+          
+          // Track this shared transaction for future synchronization
+          await this.trackSharedTransaction(transaction.id, sharedTransactionId, ownerUserId, linkedUserId, categoryValue);
+          
           sharedCount++;
         } catch (error) {
           console.error('UserLinkingService: Error sharing transaction:', transaction.id, error);
@@ -180,6 +195,22 @@ export const userLinkingService = {
       }
     } catch (error) {
       console.error('UserLinkingService: Error sharing historical transactions:', error);
+    }
+  },
+
+  async trackSharedTransaction(originalTransactionId: string, sharedTransactionId: string, ownerUserId: string, linkedUserId: string, categoryValue: string) {
+    try {
+      const sharedTransactionsRef = collection(db, 'sharedTransactions');
+      await addDoc(sharedTransactionsRef, {
+        originalTransactionId,
+        sharedTransactionId,
+        ownerUserId,
+        linkedUserId,
+        categoryValue,
+        createdAt: Timestamp.now(),
+      });
+    } catch (error) {
+      console.error('UserLinkingService: Error tracking shared transaction:', error);
     }
   },
 
@@ -229,10 +260,13 @@ export const userLinkingService = {
           const link = linkDoc.data() as CategoryLink;
           
           // Add transaction to linked user's account
-          await firestoreService.addTransaction(link.linkedUserId, {
+          const sharedTransactionId = await firestoreService.addTransaction(link.linkedUserId, {
             ...transaction,
             description: `${transaction.description} (shared from ${ownerEmail})`,
           });
+          
+          // Track this shared transaction for future synchronization
+          await this.trackSharedTransaction(transaction.id || '', sharedTransactionId, ownerUserId, link.linkedUserId, categoryValue);
           
           // Send notification to linked user
           await notificationService.addNotification(link.linkedUserId, {
@@ -251,6 +285,75 @@ export const userLinkingService = {
       }
     } catch (error) {
       console.error('UserLinkingService: Error sharing transaction:', error);
+    }
+  },
+
+  async updateSharedTransaction(ownerUserId: string, ownerEmail: string, updatedTransaction: any) {
+    try {
+      console.log('UserLinkingService: Updating shared transactions for transaction:', updatedTransaction.id);
+      
+      // Find all shared transactions that originated from this transaction
+      const sharedTransactionsRef = collection(db, 'sharedTransactions');
+      const q = query(sharedTransactionsRef, 
+        where('originalTransactionId', '==', updatedTransaction.id),
+        where('ownerUserId', '==', ownerUserId)
+      );
+      const snapshot = await getDocs(q);
+      
+      console.log('UserLinkingService: Found', snapshot.size, 'shared transactions to update');
+      
+      snapshot.forEach(async (sharedDoc) => {
+        const sharedData = sharedDoc.data() as SharedTransaction;
+        
+        try {
+          // Update the shared transaction in the linked user's account
+          await firestoreService.updateTransaction(sharedData.linkedUserId, {
+            ...updatedTransaction,
+            id: sharedData.sharedTransactionId,
+            description: `${updatedTransaction.description} (shared from ${ownerEmail})`,
+          });
+          
+          console.log('UserLinkingService: Updated shared transaction:', sharedData.sharedTransactionId);
+        } catch (error) {
+          console.error('UserLinkingService: Error updating shared transaction:', sharedData.sharedTransactionId, error);
+        }
+      });
+    } catch (error) {
+      console.error('UserLinkingService: Error updating shared transactions:', error);
+    }
+  },
+
+  async deleteSharedTransaction(ownerUserId: string, transactionId: string) {
+    try {
+      console.log('UserLinkingService: Deleting shared transactions for transaction:', transactionId);
+      
+      // Find all shared transactions that originated from this transaction
+      const sharedTransactionsRef = collection(db, 'sharedTransactions');
+      const q = query(sharedTransactionsRef, 
+        where('originalTransactionId', '==', transactionId),
+        where('ownerUserId', '==', ownerUserId)
+      );
+      const snapshot = await getDocs(q);
+      
+      console.log('UserLinkingService: Found', snapshot.size, 'shared transactions to delete');
+      
+      snapshot.forEach(async (sharedDoc) => {
+        const sharedData = sharedDoc.data() as SharedTransaction;
+        
+        try {
+          // Delete the shared transaction from the linked user's account
+          await firestoreService.deleteTransaction(sharedData.linkedUserId, sharedData.sharedTransactionId);
+          
+          // Delete the tracking record
+          await deleteDoc(sharedDoc.ref);
+          
+          console.log('UserLinkingService: Deleted shared transaction:', sharedData.sharedTransactionId);
+        } catch (error) {
+          console.error('UserLinkingService: Error deleting shared transaction:', sharedData.sharedTransactionId, error);
+        }
+      });
+    } catch (error) {
+      console.error('UserLinkingService: Error deleting shared transactions:', error);
     }
   },
 };
