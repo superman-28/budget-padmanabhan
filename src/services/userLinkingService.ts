@@ -60,21 +60,21 @@ export const userLinkingService = {
         const linkedUserId = linkedUserDoc.id;
         console.log('UserLinkingService: Found user ID:', linkedUserId);
         
-        return await this.createCategoryLink(ownerUserId, ownerEmail, categoryValue, linkedUserId, linkedEmail, linkedUserDoc.data().email);
+        return await this.createCategoryLinkWithHistory(ownerUserId, ownerEmail, categoryValue, linkedUserId, linkedEmail, linkedUserDoc.data().email);
       }
       
       const linkedUserDoc = snapshot.docs[0];
       const linkedUserId = linkedUserDoc.id;
       console.log('UserLinkingService: Found user ID:', linkedUserId);
       
-      return await this.createCategoryLink(ownerUserId, ownerEmail, categoryValue, linkedUserId, linkedEmail, linkedUserDoc.data().email);
+      return await this.createCategoryLinkWithHistory(ownerUserId, ownerEmail, categoryValue, linkedUserId, linkedEmail, linkedUserDoc.data().email);
     } catch (error) {
       console.error('UserLinkingService: Error linking category:', error);
       throw error;
     }
   },
 
-  async createCategoryLink(ownerUserId: string, ownerEmail: string, categoryValue: string, linkedUserId: string, linkedEmail: string, actualEmail: string) {
+  async createCategoryLinkWithHistory(ownerUserId: string, ownerEmail: string, categoryValue: string, linkedUserId: string, linkedEmail: string, actualEmail: string) {
     try {
       // Check if link already exists
       const categoryLinksRef = collection(db, 'categoryLinks');
@@ -103,11 +103,14 @@ export const userLinkingService = {
       const docRef = await addDoc(categoryLinksRef, linkData);
       console.log('UserLinkingService: Category link created with ID:', docRef.id);
       
+      // Share all historical transactions for this category
+      await this.shareHistoricalTransactions(ownerUserId, ownerEmail, linkedUserId, categoryValue);
+      
       // Send notification to linked user
       await notificationService.addNotification(linkedUserId, {
         type: 'category_link',
         title: 'Category Linked',
-        message: `${ownerEmail} has linked the category "${categoryValue}" with you. You'll now receive their transactions in this category.`,
+        message: `${ownerEmail} has linked the category "${categoryValue}" with you. You'll now receive their transactions in this category, including past transactions.`,
         data: { categoryValue, ownerEmail },
       });
       
@@ -117,6 +120,66 @@ export const userLinkingService = {
       console.error('UserLinkingService: Error creating category link:', error);
       throw error;
     }
+  },
+
+  async shareHistoricalTransactions(ownerUserId: string, ownerEmail: string, linkedUserId: string, categoryValue: string) {
+    try {
+      console.log('UserLinkingService: Sharing historical transactions for category:', categoryValue);
+      
+      // Get all transactions from the owner that include this category
+      const ownerTransactionsRef = collection(db, 'users', ownerUserId, 'transactions');
+      const snapshot = await getDocs(ownerTransactionsRef);
+      
+      const relevantTransactions = [];
+      snapshot.forEach((doc) => {
+        const transaction = { id: doc.id, ...doc.data() };
+        const categories = transaction.category.split(',').map((c: string) => c.trim());
+        
+        if (categories.includes(categoryValue)) {
+          relevantTransactions.push(transaction);
+        }
+      });
+      
+      console.log('UserLinkingService: Found', relevantTransactions.length, 'historical transactions to share');
+      
+      // Add each relevant transaction to the linked user's account
+      let sharedCount = 0;
+      for (const transaction of relevantTransactions) {
+        try {
+          await firestoreService.addTransaction(linkedUserId, {
+            ...transaction,
+            description: `${transaction.description} (shared from ${ownerEmail})`,
+            id: undefined, // Remove the original ID so a new one is generated
+          });
+          sharedCount++;
+        } catch (error) {
+          console.error('UserLinkingService: Error sharing transaction:', transaction.id, error);
+        }
+      }
+      
+      console.log('UserLinkingService: Successfully shared', sharedCount, 'historical transactions');
+      
+      // Send summary notification if any transactions were shared
+      if (sharedCount > 0) {
+        await notificationService.addNotification(linkedUserId, {
+          type: 'shared_transaction',
+          title: 'Historical Transactions Shared',
+          message: `${ownerEmail} has shared ${sharedCount} past transactions from the "${categoryValue}" category with you.`,
+          data: { 
+            categoryValue, 
+            ownerEmail, 
+            count: sharedCount,
+            type: 'historical'
+          },
+        });
+      }
+    } catch (error) {
+      console.error('UserLinkingService: Error sharing historical transactions:', error);
+    }
+  },
+
+  async createCategoryLink(ownerUserId: string, ownerEmail: string, categoryValue: string, linkedUserId: string, linkedEmail: string, actualEmail: string) {
+    return this.createCategoryLinkWithHistory(ownerUserId, ownerEmail, categoryValue, linkedUserId, linkedEmail, actualEmail);
   },
 
   async getCategoryLinks(userId: string): Promise<CategoryLink[]> {
@@ -142,7 +205,7 @@ export const userLinkingService = {
 
   async shareTransactionWithLinkedUsers(ownerUserId: string, ownerEmail: string, transaction: any) {
     try {
-      console.log('UserLinkingService: Sharing transaction with linked users');
+      console.log('UserLinkingService: Sharing new transaction with linked users');
       
       const categories = transaction.category.split(',').map((c: string) => c.trim());
       
@@ -155,13 +218,15 @@ export const userLinkingService = {
         );
         const snapshot = await getDocs(q);
         
+        console.log('UserLinkingService: Found', snapshot.size, 'linked users for category:', categoryValue);
+        
         snapshot.forEach(async (linkDoc) => {
           const link = linkDoc.data() as CategoryLink;
           
           // Add transaction to linked user's account
           await firestoreService.addTransaction(link.linkedUserId, {
             ...transaction,
-            description: `${transaction.description} (from ${ownerEmail})`,
+            description: `${transaction.description} (shared from ${ownerEmail})`,
           });
           
           // Send notification to linked user
