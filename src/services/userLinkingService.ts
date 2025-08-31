@@ -132,11 +132,16 @@ export const userLinkingService = {
       
       const relevantTransactions = [];
       snapshot.forEach((doc) => {
-        const transaction = { id: doc.id, ...doc.data() };
-        const categories = transaction.category.split(',').map((c: string) => c.trim());
+        const transactionData = doc.data();
+        const transaction = { id: doc.id, ...transactionData };
         
-        if (categories.includes(categoryValue)) {
-          relevantTransactions.push(transaction);
+        // Check if transaction has category property and includes our categoryValue
+        if (transactionData.category && typeof transactionData.category === 'string') {
+          const categories = transactionData.category.split(',').map((c: string) => c.trim());
+          
+          if (categories.includes(categoryValue)) {
+            relevantTransactions.push(transaction);
+          }
         }
       });
       
