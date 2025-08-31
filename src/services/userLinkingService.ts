@@ -26,6 +26,7 @@ export interface CategoryLink {
 export interface SharedTransaction {
   id: string;
   originalTransactionId: string;
+  sharedTransactionId: string; // Added: used when updating/deleting shared transactions
   ownerUserId: string;
   linkedUserId: string;
   categoryValue: string;
