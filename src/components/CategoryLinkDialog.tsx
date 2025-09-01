@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { X, UserPlus, User } from 'lucide-react';
+import { X, UserPlus, User, Check } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { userLinkingService } from '@/services/userLinkingService';
 import { toast } from 'sonner';
@@ -36,13 +36,29 @@ export const CategoryLinkDialog = ({
   const [availableUsers, setAvailableUsers] = useState<AvailableUser[]>([]);
   const [showUserList, setShowUserList] = useState(true);
   const [loadingUsers, setLoadingUsers] = useState(false);
+  const [linkedUserIds, setLinkedUserIds] = useState<Set<string>>(new Set());
 
-  // Load available users when dialog opens
+  // Load available users and linked users when dialog opens
   useEffect(() => {
     if (isOpen && user) {
       loadAvailableUsers();
+      loadLinkedUsers();
     }
-  }, [isOpen, user]);
+  }, [isOpen, user, categoryValue]);
+
+  const loadLinkedUsers = async () => {
+    if (!user) return;
+    
+    try {
+      const links = await userLinkingService.getOwnedCategoryLinks(user.uid);
+      const linkedForThisCategory = links
+        .filter(link => link.categoryValue === categoryValue)
+        .map(link => link.linkedUserId);
+      setLinkedUserIds(new Set(linkedForThisCategory));
+    } catch (error) {
+      console.error('Error loading linked users:', error);
+    }
+  };
 
   const loadAvailableUsers = async () => {
     if (!user) return;
@@ -88,7 +104,8 @@ export const CategoryLinkDialog = ({
       
       toast.success(`Successfully linked category "${categoryLabel}" with ${targetEmail}`);
       setEmail('');
-      onClose();
+      // Refresh linked users after successful link
+      await loadLinkedUsers();
     } catch (error: any) {
       toast.error(error.message || 'Failed to link user');
     } finally {
@@ -97,6 +114,12 @@ export const CategoryLinkDialog = ({
   };
 
   const handleUserSelect = (selectedUser: AvailableUser) => {
+    // Check if user is already linked
+    if (linkedUserIds.has(selectedUser.uid)) {
+      toast.info(`${selectedUser.displayName} is already linked to this category`);
+      return;
+    }
+    
     handleLinkUser(selectedUser.email);
   };
 
@@ -156,19 +179,39 @@ export const CategoryLinkDialog = ({
                 </div>
               ) : (
                 <div className="max-h-48 overflow-y-auto space-y-1 border rounded-lg p-2">
-                  {availableUsers.map((availableUser) => (
-                    <div
-                      key={availableUser.uid}
-                      className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 cursor-pointer"
-                      onClick={() => handleUserSelect(availableUser)}
-                    >
-                      <User className="h-4 w-4 text-muted-foreground" />
-                      <div className="flex-1">
-                        <p className="font-medium text-sm">{availableUser.displayName}</p>
-                        <p className="text-xs text-muted-foreground">{availableUser.email}</p>
+                  {availableUsers.map((availableUser) => {
+                    const isLinked = linkedUserIds.has(availableUser.uid);
+                    return (
+                      <div
+                        key={availableUser.uid}
+                        className={`flex items-center gap-3 p-2 rounded-lg cursor-pointer transition-colors ${
+                          isLinked 
+                            ? 'bg-green-50 border border-green-200 dark:bg-green-950 dark:border-green-800' 
+                            : 'hover:bg-muted/50'
+                        }`}
+                        onClick={() => handleUserSelect(availableUser)}
+                      >
+                        {isLinked ? (
+                          <Check className="h-4 w-4 text-green-600 dark:text-green-400" />
+                        ) : (
+                          <User className="h-4 w-4 text-muted-foreground" />
+                        )}
+                        <div className="flex-1">
+                          <p className={`font-medium text-sm ${
+                            isLinked ? 'text-green-700 dark:text-green-300' : ''
+                          }`}>
+                            {availableUser.displayName}
+                            {isLinked && ' (Linked)'}
+                          </p>
+                          <p className={`text-xs ${
+                            isLinked ? 'text-green-600 dark:text-green-400' : 'text-muted-foreground'
+                          }`}>
+                            {availableUser.email}
+                          </p>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>
