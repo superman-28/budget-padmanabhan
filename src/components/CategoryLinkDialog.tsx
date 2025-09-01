@@ -41,28 +41,42 @@ export const CategoryLinkDialog = ({
   // Load available users and linked users when dialog opens
   useEffect(() => {
     if (isOpen && user) {
-      loadAvailableUsers();
-      loadLinkedUsers();
+      console.log('CategoryLinkDialog: Dialog opened, loading data for category:', categoryValue);
+      loadData();
     }
   }, [isOpen, user, categoryValue]);
+
+  const loadData = async () => {
+    await Promise.all([
+      loadAvailableUsers(),
+      loadLinkedUsers()
+    ]);
+  };
 
   const loadLinkedUsers = async () => {
     if (!user) return;
     
+    console.log('CategoryLinkDialog: Loading linked users for category:', categoryValue);
     try {
       const links = await userLinkingService.getOwnedCategoryLinks(user.uid);
+      console.log('CategoryLinkDialog: All owned links:', links);
+      
       const linkedForThisCategory = links
         .filter(link => link.categoryValue === categoryValue)
         .map(link => link.linkedUserId);
+      
+      console.log('CategoryLinkDialog: Linked users for this category:', linkedForThisCategory);
+      
       setLinkedUserIds(new Set(linkedForThisCategory));
     } catch (error) {
-      console.error('Error loading linked users:', error);
+      console.error('CategoryLinkDialog: Error loading linked users:', error);
     }
   };
 
   const loadAvailableUsers = async () => {
     if (!user) return;
     
+    console.log('CategoryLinkDialog: Loading available users');
     setLoadingUsers(true);
     try {
       const usersRef = collection(db, 'users');
@@ -81,9 +95,10 @@ export const CategoryLinkDialog = ({
         }
       });
       
+      console.log('CategoryLinkDialog: Loaded available users:', users.length);
       setAvailableUsers(users.sort((a, b) => a.displayName.localeCompare(b.displayName)));
     } catch (error) {
-      console.error('Error loading users:', error);
+      console.error('CategoryLinkDialog: Error loading users:', error);
       toast.error('Failed to load available users');
     } finally {
       setLoadingUsers(false);
@@ -202,6 +217,8 @@ export const CategoryLinkDialog = ({
                 <div className="max-h-48 overflow-y-auto space-y-1 border rounded-lg p-2">
                   {availableUsers.map((availableUser) => {
                     const isLinked = linkedUserIds.has(availableUser.uid);
+                    console.log(`CategoryLinkDialog: User ${availableUser.displayName} (${availableUser.uid}) is linked:`, isLinked);
+                    
                     return (
                       <div
                         key={availableUser.uid}
