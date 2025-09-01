@@ -1,6 +1,6 @@
 
 import { useState } from 'react';
-import { Check, X, Calendar, Trash2 } from 'lucide-react';
+import { Check, X, Calendar, Trash2, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -30,12 +30,13 @@ export const TransactionEditForm = ({
   const [description, setDescription] = useState(transaction.description);
   const [date, setDate] = useState(format(new Date(transaction.date), 'yyyy-MM-dd'));
   const [type, setType] = useState<'expense' | 'income'>(transaction.type);
+  const [paidBy, setPaidBy] = useState(transaction.paidBy || '');
   const { toast } = useToast();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!amount || selectedCategories.length === 0 || !date) {
+    if (!amount || selectedCategories.length === 0 || !date || !paidBy.trim()) {
       toast({
         title: "Missing Information",
         description: "Please fill in all required fields",
@@ -61,6 +62,7 @@ export const TransactionEditForm = ({
       description: description.trim() || 'No description',
       date: new Date(date).toISOString(),
       type,
+      paidBy: paidBy.trim(),
     };
 
     onSave(updatedTransaction);
@@ -139,6 +141,23 @@ export const TransactionEditForm = ({
         </div>
       </div>
 
+      {/* Paid By */}
+      <div className="space-y-2">
+        <Label htmlFor="edit-paidBy">Paid By</Label>
+        <div className="relative">
+          <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            id="edit-paidBy"
+            type="email"
+            placeholder="Email of person who paid"
+            value={paidBy}
+            onChange={(e) => setPaidBy(e.target.value)}
+            className="pl-10"
+          />
+        </div>
+      </div>
+
+      {/* Categories */}
       <div className="space-y-2">
         <Label>Categories</Label>
         <div className="flex flex-wrap gap-2">
@@ -160,6 +179,7 @@ export const TransactionEditForm = ({
         </div>
       </div>
 
+      {/* Description */}
       <div className="space-y-2">
         <Label htmlFor="edit-description">Description</Label>
         <Input

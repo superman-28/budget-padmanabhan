@@ -1,6 +1,6 @@
 
 import { useState } from 'react';
-import { Plus, DollarSign, X, Calendar, Settings } from 'lucide-react';
+import { Plus, DollarSign, X, Calendar, Settings, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -9,6 +9,7 @@ import { Transaction } from '@/pages/Index';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { CategoryManager } from './CategoryManager';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface ExpenseFormProps {
   onAddTransaction: (transaction: Omit<Transaction, 'id'>) => void;
@@ -25,21 +26,23 @@ export const ExpenseForm = ({
   onUpdateCategory,
   onDeleteCategory
 }: ExpenseFormProps) => {
+  const { user } = useAuth();
   const [amount, setAmount] = useState('');
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [description, setDescription] = useState('');
   const [date, setDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [type, setType] = useState<'expense' | 'income'>('expense');
+  const [paidBy, setPaidBy] = useState(user?.email || '');
   const [showCategoryManager, setShowCategoryManager] = useState(false);
   const { toast } = useToast();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!amount || selectedCategories.length === 0 || !date) {
+    if (!amount || selectedCategories.length === 0 || !date || !paidBy.trim()) {
       toast({
         title: "Missing Information",
-        description: "Please fill in amount, date and select at least one category",
+        description: "Please fill in amount, date, paid by, and select at least one category",
         variant: "destructive",
       });
       return;
@@ -71,6 +74,7 @@ export const ExpenseForm = ({
       description: description.trim() || 'No description',
       date: selectedDate.toISOString(),
       type,
+      paidBy: paidBy.trim(),
     });
 
     // Reset form
@@ -78,6 +82,7 @@ export const ExpenseForm = ({
     setSelectedCategories([]);
     setDescription('');
     setDate(format(new Date(), 'yyyy-MM-dd'));
+    setPaidBy(user?.email || '');
     
     toast({
       title: "Transaction Added",
@@ -184,6 +189,22 @@ export const ExpenseForm = ({
                   className="pl-10"
                 />
               </div>
+            </div>
+          </div>
+
+          {/* Paid By */}
+          <div className="space-y-2">
+            <Label htmlFor="paidBy">Paid By</Label>
+            <div className="relative">
+              <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                id="paidBy"
+                type="email"
+                placeholder="Email of person who paid"
+                value={paidBy}
+                onChange={(e) => setPaidBy(e.target.value)}
+                className="pl-10"
+              />
             </div>
           </div>
 

@@ -1,6 +1,6 @@
 
 import { useMemo } from 'react';
-import { X, Calendar } from 'lucide-react';
+import { X, Calendar, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -117,6 +117,15 @@ export const CategoryDetailModal = ({
                                 : format(new Date(transaction.date), 'MMM d, yyyy')
                               }
                             </span>
+                            {transaction.paidBy && (
+                              <>
+                                <span>•</span>
+                                <span className="flex items-center gap-1">
+                                  <User className="h-3 w-3" />
+                                  {transaction.paidBy}
+                                </span>
+                              </>
+                            )}
                             {categoryCount > 1 && (
                               <>
                                 <span>•</span>

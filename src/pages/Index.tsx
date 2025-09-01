@@ -18,6 +18,7 @@ export interface Transaction {
   description: string;
   date: string;
   type: 'expense' | 'income';
+  paidBy: string; // Email of the person who paid
 }
 
 interface Category {
@@ -87,13 +88,19 @@ const Index = () => {
     
     try {
       console.log('Index: Adding transaction');
-      const transactionId = await firestoreService.addTransaction(user.uid, transaction);
+      // Add paidBy field defaulting to current user's email
+      const transactionWithPaidBy = {
+        ...transaction,
+        paidBy: user.email!
+      };
+      
+      const transactionId = await firestoreService.addTransaction(user.uid, transactionWithPaidBy);
       
       // Share transaction with linked users
       await userLinkingService.shareTransactionWithLinkedUsers(
         user.uid,
         user.email!,
-        { ...transaction, id: transactionId }
+        { ...transactionWithPaidBy, id: transactionId }
       );
     } catch (error) {
       console.error('Index: Error adding transaction:', error);
