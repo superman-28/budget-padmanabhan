@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { X, UserPlus, User, Check } from 'lucide-react';
+import { X, UserPlus, User, Check, UserMinus } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { userLinkingService } from '@/services/userLinkingService';
 import { toast } from 'sonner';
@@ -113,10 +113,31 @@ export const CategoryLinkDialog = ({
     }
   };
 
+  const handleUnlinkUser = async (selectedUser: AvailableUser) => {
+    if (!user) return;
+
+    setLoading(true);
+    try {
+      await userLinkingService.unlinkCategoryFromUser(
+        user.uid,
+        categoryValue,
+        selectedUser.uid
+      );
+      
+      toast.success(`Successfully unlinked category "${categoryLabel}" from ${selectedUser.displayName}`);
+      // Refresh linked users after successful unlink
+      await loadLinkedUsers();
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to unlink user');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleUserSelect = (selectedUser: AvailableUser) => {
     // Check if user is already linked
     if (linkedUserIds.has(selectedUser.uid)) {
-      toast.info(`${selectedUser.displayName} is already linked to this category`);
+      // Don't show toast, let the user decide via the unlink button
       return;
     }
     
@@ -184,19 +205,18 @@ export const CategoryLinkDialog = ({
                     return (
                       <div
                         key={availableUser.uid}
-                        className={`flex items-center gap-3 p-2 rounded-lg cursor-pointer transition-colors ${
+                        className={`flex items-center gap-3 p-2 rounded-lg transition-colors ${
                           isLinked 
                             ? 'bg-green-50 border border-green-200 dark:bg-green-950 dark:border-green-800' 
                             : 'hover:bg-muted/50'
                         }`}
-                        onClick={() => handleUserSelect(availableUser)}
                       >
                         {isLinked ? (
                           <Check className="h-4 w-4 text-green-600 dark:text-green-400" />
                         ) : (
                           <User className="h-4 w-4 text-muted-foreground" />
                         )}
-                        <div className="flex-1">
+                        <div className="flex-1" onClick={() => !isLinked && handleUserSelect(availableUser)} className={!isLinked ? 'cursor-pointer' : ''}>
                           <p className={`font-medium text-sm ${
                             isLinked ? 'text-green-700 dark:text-green-300' : ''
                           }`}>
@@ -209,6 +229,27 @@ export const CategoryLinkDialog = ({
                             {availableUser.email}
                           </p>
                         </div>
+                        {isLinked ? (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleUnlinkUser(availableUser)}
+                            disabled={loading}
+                            className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-950"
+                          >
+                            <UserMinus className="h-4 w-4" />
+                          </Button>
+                        ) : (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleUserSelect(availableUser)}
+                            disabled={loading}
+                            className="text-green-600 hover:text-green-700 hover:bg-green-50 dark:text-green-400 dark:hover:text-green-300 dark:hover:bg-green-950"
+                          >
+                            <UserPlus className="h-4 w-4" />
+                          </Button>
+                        )}
                       </div>
                     );
                   })}

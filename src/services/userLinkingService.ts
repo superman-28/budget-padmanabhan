@@ -378,4 +378,100 @@ export const userLinkingService = {
       console.error('UserLinkingService: Error deleting shared transactions:', error);
     }
   },
+
+  async unlinkCategoryFromUser(ownerUserId: string, categoryValue: string, linkedUserId: string) {
+    try {
+      console.log('UserLinkingService: Unlinking category from user:', { ownerUserId, categoryValue, linkedUserId });
+      
+      // Find and delete the category link
+      const categoryLinksRef = collection(db, 'categoryLinks');
+      const linkQuery = query(
+        categoryLinksRef,
+        where('ownerUserId', '==', ownerUserId),
+        where('linkedUserId', '==', linkedUserId),
+        where('categoryValue', '==', categoryValue)
+      );
+      const linkSnapshot = await getDocs(linkQuery);
+      
+      if (linkSnapshot.empty) {
+        throw new Error('Category link not found');
+      }
+      
+      const linkDoc = linkSnapshot.docs[0];
+      const linkData = linkDoc.data();
+      
+      // Delete the category link
+      await deleteDoc(linkDoc.ref);
+      console.log('UserLinkingService: Category link deleted');
+      
+      // Remove all shared transactions for this category between these users
+      await this.removeSharedTransactions(ownerUserId, linkedUserId, categoryValue);
+      
+      // Send notification to the unlinked user
+      await notificationService.addNotification(linkedUserId, {
+        type: 'category_unlink',
+        title: 'Category Unlinked',
+        message: `${linkData.ownerEmail} has unlinked the category "${categoryValue}" from you. You will no longer receive their transactions in this category.`,
+        data: { categoryValue, ownerEmail: linkData.ownerEmail },
+      });
+      
+      console.log('UserLinkingService: Category unlinked successfully');
+    } catch (error) {
+      console.error('UserLinkingService: Error unlinking category:', error);
+      throw error;
+    }
+  },
+
+  async removeSharedTransactions(ownerUserId: string, linkedUserId: string, categoryValue: string) {
+    try {
+      console.log('UserLinkingService: Removing shared transactions for category:', categoryValue);
+      
+      // Find all shared transactions for this category between these users
+      const sharedTransactionsRef = collection(db, 'sharedTransactions');
+      const q = query(sharedTransactionsRef, 
+        where('ownerUserId', '==', ownerUserId),
+        where('linkedUserId', '==', linkedUserId),
+        where('categoryValue', '==', categoryValue)
+      );
+      const snapshot = await getDocs(q);
+      
+      console.log('UserLinkingService: Found', snapshot.size, 'shared transactions to remove');
+      
+      // Remove each shared transaction from the linked user's account and delete tracking record
+      let removedCount = 0;
+      snapshot.forEach(async (sharedDoc) => {
+        const sharedData = sharedDoc.data() as SharedTransaction;
+        
+        try {
+          // Delete the shared transaction from the linked user's account
+          await firestoreService.deleteTransaction(linkedUserId, sharedData.sharedTransactionId);
+          
+          // Delete the tracking record
+          await deleteDoc(sharedDoc.ref);
+          
+          removedCount++;
+        } catch (error) {
+          console.error('UserLinkingService: Error removing shared transaction:', sharedData.sharedTransactionId, error);
+        }
+      });
+      
+      console.log('UserLinkingService: Successfully removed', removedCount, 'shared transactions');
+      
+      // Send summary notification if any transactions were removed
+      if (removedCount > 0) {
+        await notificationService.addNotification(linkedUserId, {
+          type: 'shared_transaction_removed',
+          title: 'Shared Transactions Removed',
+          message: `${removedCount} shared transactions from the "${categoryValue}" category have been removed from your account.`,
+          data: { 
+            categoryValue, 
+            count: removedCount,
+            type: 'removal'
+          },
+        });
+      }
+    } catch (error) {
+      console.error('UserLinkingService: Error removing shared transactions:', error);
+    }
+  },
 };
