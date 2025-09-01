@@ -26,7 +26,7 @@ export interface CategoryLink {
 export interface SharedTransaction {
   id: string;
   originalTransactionId: string;
-  sharedTransactionId: string; // Added: used when updating/deleting shared transactions
+  sharedTransactionId: string;
   ownerUserId: string;
   linkedUserId: string;
   categoryValue: string;
@@ -236,6 +236,27 @@ export const userLinkingService = {
       return links;
     } catch (error) {
       console.error('UserLinkingService: Error getting category links:', error);
+      return [];
+    }
+  },
+
+  async getOwnedCategoryLinks(userId: string): Promise<CategoryLink[]> {
+    try {
+      const categoryLinksRef = collection(db, 'categoryLinks');
+      const q = query(categoryLinksRef, where('ownerUserId', '==', userId));
+      const snapshot = await getDocs(q);
+      
+      const links: CategoryLink[] = [];
+      snapshot.forEach((doc) => {
+        links.push({
+          id: doc.id,
+          ...doc.data()
+        } as CategoryLink);
+      });
+      
+      return links;
+    } catch (error) {
+      console.error('UserLinkingService: Error getting owned category links:', error);
       return [];
     }
   },

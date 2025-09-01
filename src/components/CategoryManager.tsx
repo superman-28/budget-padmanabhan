@@ -1,10 +1,11 @@
 
 import { useState } from 'react';
-import { Pencil, Trash2, Plus, X, Check } from 'lucide-react';
+import { Pencil, Trash2, Plus, X, Check, UserPlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
+import { CategoryLinkDialog } from './CategoryLinkDialog';
 
 interface Category {
   value: string;
@@ -30,6 +31,10 @@ export const CategoryManager = ({
   const [editForm, setEditForm] = useState({ label: '', icon: '', color: '' });
   const [showAddForm, setShowAddForm] = useState(false);
   const [addForm, setAddForm] = useState({ label: '', icon: '', color: '#6b7280' });
+  const [linkDialog, setLinkDialog] = useState<{
+    categoryValue: string;
+    categoryLabel: string;
+  } | null>(null);
   const { toast } = useToast();
 
   const handleEditStart = (category: Category) => {
@@ -96,112 +101,138 @@ export const CategoryManager = ({
     });
   };
 
-  return (
-    <Card className="surface-elevated shadow-sm">
-      <CardHeader>
-        <CardTitle className="flex items-center justify-between">
-          Manage Categories
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setShowAddForm(!showAddForm)}
-          >
-            <Plus className="h-4 w-4" />
-          </Button>
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-3">
-        {showAddForm && (
-          <div className="space-y-2 p-3 border rounded-lg bg-muted/20">
-            <Input
-              placeholder="Category name"
-              value={addForm.label}
-              onChange={(e) => setAddForm({ ...addForm, label: e.target.value })}
-            />
-            <div className="flex gap-2">
-              <Input
-                placeholder="Icon (emoji)"
-                value={addForm.icon}
-                onChange={(e) => setAddForm({ ...addForm, icon: e.target.value })}
-                className="flex-1"
-              />
-              <Input
-                type="color"
-                value={addForm.color}
-                onChange={(e) => setAddForm({ ...addForm, color: e.target.value })}
-                className="w-16"
-              />
-            </div>
-            <div className="flex gap-2">
-              <Button size="sm" onClick={handleAdd}>
-                <Check className="h-4 w-4" />
-              </Button>
-              <Button size="sm" variant="outline" onClick={() => setShowAddForm(false)}>
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
-        )}
+  const handleLinkCategory = (category: Category) => {
+    setLinkDialog({
+      categoryValue: category.value,
+      categoryLabel: category.label
+    });
+  };
 
-        {categories.map((category) => (
-          <div key={category.value} className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/20">
-            {editingCategory === category.value ? (
-              <div className="flex-1 space-y-2">
+  return (
+    <>
+      <Card className="surface-elevated shadow-sm">
+        <CardHeader>
+          <CardTitle className="flex items-center justify-between">
+            Manage Categories
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowAddForm(!showAddForm)}
+            >
+              <Plus className="h-4 w-4" />
+            </Button>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {showAddForm && (
+            <div className="space-y-2 p-3 border rounded-lg bg-muted/20">
+              <Input
+                placeholder="Category name"
+                value={addForm.label}
+                onChange={(e) => setAddForm({ ...addForm, label: e.target.value })}
+              />
+              <div className="flex gap-2">
                 <Input
-                  value={editForm.label}
-                  onChange={(e) => setEditForm({ ...editForm, label: e.target.value })}
+                  placeholder="Icon (emoji)"
+                  value={addForm.icon}
+                  onChange={(e) => setAddForm({ ...addForm, icon: e.target.value })}
+                  className="flex-1"
                 />
-                <div className="flex gap-2">
-                  <Input
-                    placeholder="Icon"
-                    value={editForm.icon}
-                    onChange={(e) => setEditForm({ ...editForm, icon: e.target.value })}
-                    className="flex-1"
-                  />
-                  <Input
-                    type="color"
-                    value={editForm.color}
-                    onChange={(e) => setEditForm({ ...editForm, color: e.target.value })}
-                    className="w-16"
-                  />
-                </div>
-                <div className="flex gap-2">
-                  <Button size="sm" onClick={() => handleEditSave(category.value)}>
-                    <Check className="h-4 w-4" />
-                  </Button>
-                  <Button size="sm" variant="outline" onClick={() => setEditingCategory(null)}>
-                    <X className="h-4 w-4" />
-                  </Button>
-                </div>
+                <Input
+                  type="color"
+                  value={addForm.color}
+                  onChange={(e) => setAddForm({ ...addForm, color: e.target.value })}
+                  className="w-16"
+                />
               </div>
-            ) : (
-              <>
-                <div 
-                  className="w-4 h-4 rounded-full" 
-                  style={{ backgroundColor: category.color }}
-                />
-                <span className="text-lg">{category.icon}</span>
-                <span className="flex-1">{category.label}</span>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => handleEditStart(category)}
-                >
-                  <Pencil className="h-4 w-4" />
+              <div className="flex gap-2">
+                <Button size="sm" onClick={handleAdd}>
+                  <Check className="h-4 w-4" />
                 </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => handleDelete(category.value, category.label)}
-                  className="text-red-600 hover:text-red-700"
-                >
-                  <Trash2 className="h-4 w-4" />
+                <Button size="sm" variant="outline" onClick={() => setShowAddForm(false)}>
+                  <X className="h-4 w-4" />
                 </Button>
-              </>
-            )}
-          </div>
-        ))}
-      </CardContent>
-    </Card>
+              </div>
+            </div>
+          )}
+
+          {categories.map((category) => (
+            <div key={category.value} className="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/20">
+              {editingCategory === category.value ? (
+                <div className="flex-1 space-y-2">
+                  <Input
+                    value={editForm.label}
+                    onChange={(e) => setEditForm({ ...editForm, label: e.target.value })}
+                  />
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="Icon"
+                      value={editForm.icon}
+                      onChange={(e) => setEditForm({ ...editForm, icon: e.target.value })}
+                      className="flex-1"
+                    />
+                    <Input
+                      type="color"
+                      value={editForm.color}
+                      onChange={(e) => setEditForm({ ...editForm, color: e.target.value })}
+                      className="w-16"
+                    />
+                  </div>
+                  <div className="flex gap-2">
+                    <Button size="sm" onClick={() => handleEditSave(category.value)}>
+                      <Check className="h-4 w-4" />
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={() => setEditingCategory(null)}>
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <div 
+                    className="w-4 h-4 rounded-full" 
+                    style={{ backgroundColor: category.color }}
+                  />
+                  <span className="text-lg">{category.icon}</span>
+                  <span className="flex-1">{category.label}</span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleLinkCategory(category)}
+                    title="Link with user"
+                  >
+                    <UserPlus className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleEditStart(category)}
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleDelete(category.value, category.label)}
+                    className="text-red-600 hover:text-red-700"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </>
+              )}
+            </div>
+          ))}
+        </CardContent>
+      </Card>
+
+      {linkDialog && (
+        <CategoryLinkDialog
+          categoryValue={linkDialog.categoryValue}
+          categoryLabel={linkDialog.categoryLabel}
+          isOpen={true}
+          onClose={() => setLinkDialog(null)}
+        />
+      )}
+    </>
   );
 };

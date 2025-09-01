@@ -1,10 +1,13 @@
-import { useMemo, useState } from 'react';
+
+import { useMemo, useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { UserPlus } from 'lucide-react';
 import { Transaction } from '@/pages/Index';
 import { CategoryDetailModal } from './CategoryDetailModal';
 import { CategoryLinkDialog } from './CategoryLinkDialog';
+import { userLinkingService } from '@/services/userLinkingService';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface Category {
   value: string;
@@ -26,6 +29,7 @@ export const CategoryBreakdown = ({
   categories,
   onDeleteTransaction 
 }: CategoryBreakdownProps) => {
+  const { user } = useAuth();
   const [selectedCategory, setSelectedCategory] = useState<{
     value: string;
     label: string;
@@ -36,6 +40,27 @@ export const CategoryBreakdown = ({
     categoryValue: string;
     categoryLabel: string;
   } | null>(null);
+  const [linkedCategories, setLinkedCategories] = useState<Set<string>>(new Set());
+
+  // Load linked categories when component mounts or user changes
+  useEffect(() => {
+    if (user) {
+      loadLinkedCategories();
+    }
+  }, [user]);
+
+  const loadLinkedCategories = async () => {
+    if (!user) return;
+    
+    try {
+      // Get categories that this user has linked (as owner)
+      const links = await userLinkingService.getOwnedCategoryLinks(user.uid);
+      const linkedCategoryValues = new Set(links.map(link => link.categoryValue));
+      setLinkedCategories(linkedCategoryValues);
+    } catch (error) {
+      console.error('Error loading linked categories:', error);
+    }
+  };
 
   const categoryData = useMemo(() => {
     const currentMonth = selectedDate.getMonth();
@@ -98,6 +123,12 @@ export const CategoryBreakdown = ({
     }
   };
 
+  const handleLinkDialogClose = () => {
+    setLinkDialog(null);
+    // Refresh linked categories after potential new link
+    loadLinkedCategories();
+  };
+
   return (
     <>
       <Card className="surface-elevated">
@@ -128,14 +159,16 @@ export const CategoryBreakdown = ({
                         <p className="font-semibold">₹{item.amount.toFixed(2)}</p>
                         <p className="text-xs text-muted-foreground">{item.percentage.toFixed(1)}%</p>
                       </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleLinkCategory(item.category)}
-                        className="h-8 w-8 p-0"
-                      >
-                        <UserPlus className="h-4 w-4" />
-                      </Button>
+                      {!linkedCategories.has(item.category) && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleLinkCategory(item.category)}
+                          className="h-8 w-8 p-0"
+                        >
+                          <UserPlus className="h-4 w-4" />
+                        </Button>
+                      )}
                     </div>
                   </div>
                   <div className="w-full bg-muted rounded-full h-2">
@@ -171,7 +204,7 @@ export const CategoryBreakdown = ({
           categoryValue={linkDialog.categoryValue}
           categoryLabel={linkDialog.categoryLabel}
           isOpen={true}
-          onClose={() => setLinkDialog(null)}
+          onClose={handleLinkDialogClose}
         />
       )}
     </>
