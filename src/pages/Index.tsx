@@ -29,13 +29,6 @@ interface Category {
 }
 
 const defaultCategories: Category[] = [
-  { value: 'food', label: 'Food & Dining', icon: '🍽️', color: '#eab308' },
-  { value: 'transport', label: 'Transportation', icon: '🚗', color: '#3b82f6' },
-  { value: 'entertainment', label: 'Entertainment', icon: '🎬', color: '#8b5cf6' },
-  { value: 'shopping', label: 'Shopping', icon: '🛍️', color: '#ef4444' },
-  { value: 'bills', label: 'Bills & Utilities', icon: '📄', color: '#22c55e' },
-  { value: 'health', label: 'Healthcare', icon: '🏥', color: '#06b6d4' },
-  { value: 'other', label: 'Other', icon: '💼', color: '#6b7280' },
 ];
 
 const Index = () => {
