@@ -216,7 +216,10 @@ export const CategoryLinkDialog = ({
                         ) : (
                           <User className="h-4 w-4 text-muted-foreground" />
                         )}
-                        <div className="flex-1" onClick={() => !isLinked && handleUserSelect(availableUser)} className={!isLinked ? 'cursor-pointer' : ''}>
+                        <div 
+                          className={`flex-1 ${!isLinked ? 'cursor-pointer' : ''}`}
+                          onClick={() => !isLinked && handleUserSelect(availableUser)}
+                        >
                           <p className={`font-medium text-sm ${
                             isLinked ? 'text-green-700 dark:text-green-300' : ''
                           }`}>

@@ -16,7 +16,7 @@ import { db } from '@/lib/firebase';
 export interface Notification {
   id: string;
   userId: string;
-  type: 'category_link' | 'shared_transaction';
+  type: 'category_link' | 'shared_transaction' | 'category_unlink' | 'shared_transaction_removed';
   title: string;
   message: string;
   data?: any;
