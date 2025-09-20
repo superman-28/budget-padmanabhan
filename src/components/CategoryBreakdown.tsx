@@ -2,7 +2,8 @@
 import { useMemo, useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { UserPlus } from 'lucide-react';
+import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card';
+import { UserPlus, User, Users } from 'lucide-react';
 import { Transaction } from '@/pages/Index';
 import { CategoryDetailModal } from './CategoryDetailModal';
 import { CategoryLinkDialog } from './CategoryLinkDialog';
@@ -73,31 +74,42 @@ export const CategoryBreakdown = ({
              t.type === 'expense';
     });
 
-    const categoryTotals: { [key: string]: number } = {};
+    const categoryTotals: { [key: string]: { total: number; myExpenses: number; sharedExpenses: number } } = {};
     
     monthlyTransactions.forEach(transaction => {
       const transactionCategories = transaction.category.split(',').map(c => c.trim());
       const amountPerCategory = transaction.amount / transactionCategories.length;
+      const isMyTransaction = !transaction.paidBy || transaction.paidBy === user?.uid;
       
       transactionCategories.forEach(categoryValue => {
-        categoryTotals[categoryValue] = (categoryTotals[categoryValue] || 0) + amountPerCategory;
+        if (!categoryTotals[categoryValue]) {
+          categoryTotals[categoryValue] = { total: 0, myExpenses: 0, sharedExpenses: 0 };
+        }
+        categoryTotals[categoryValue].total += amountPerCategory;
+        if (isMyTransaction) {
+          categoryTotals[categoryValue].myExpenses += amountPerCategory;
+        } else {
+          categoryTotals[categoryValue].sharedExpenses += amountPerCategory;
+        }
       });
     });
 
     return Object.entries(categoryTotals)
-      .map(([categoryValue, amount]) => {
+      .map(([categoryValue, amounts]) => {
         const category = categories.find(c => c.value === categoryValue);
         return {
           category: categoryValue,
           label: category?.label || categoryValue,
           icon: category?.icon || '📁',
           color: category?.color || '#6b7280',
-          amount,
+          amount: amounts.total,
+          myExpenses: amounts.myExpenses,
+          sharedExpenses: amounts.sharedExpenses,
           percentage: 0
         };
       })
       .sort((a, b) => b.amount - a.amount);
-  }, [transactions, selectedDate, categories]);
+  }, [transactions, selectedDate, categories, user]);
 
   const total = categoryData.reduce((sum, item) => sum + item.amount, 0);
   
@@ -143,17 +155,57 @@ export const CategoryBreakdown = ({
               {dataWithPercentages.map((item) => (
                 <div key={item.category} className="space-y-2">
                   <div className="flex items-center justify-between">
-                    <div 
-                      className="flex items-center gap-2 cursor-pointer hover:opacity-80"
-                      onClick={() => handleCategoryClick(item.category)}
-                    >
-                      <div 
-                        className="w-3 h-3 rounded-full" 
-                        style={{ backgroundColor: item.color }}
-                      />
-                      <span className="text-2xl">{item.icon}</span>
-                      <span className="font-medium">{item.label}</span>
-                    </div>
+                    <HoverCard>
+                      <HoverCardTrigger asChild>
+                        <div 
+                          className="flex items-center gap-2 cursor-pointer hover:opacity-80 hover:bg-accent rounded-md p-1 transition-colors"
+                          onClick={() => handleCategoryClick(item.category)}
+                        >
+                          <div 
+                            className="w-3 h-3 rounded-full" 
+                            style={{ backgroundColor: item.color }}
+                          />
+                          <span className="text-2xl">{item.icon}</span>
+                          <span className="font-medium">{item.label}</span>
+                        </div>
+                      </HoverCardTrigger>
+                      <HoverCardContent className="w-64 p-3">
+                        <div className="space-y-3">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xl">{item.icon}</span>
+                            <h4 className="font-semibold">{item.label}</h4>
+                          </div>
+                          
+                          <div className="space-y-2 text-sm">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <User className="h-4 w-4 text-blue-500" />
+                                <span>My expenses</span>
+                              </div>
+                              <span className="font-medium">₹{item.myExpenses.toFixed(2)}</span>
+                            </div>
+                            
+                            {item.sharedExpenses > 0 && (
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                  <Users className="h-4 w-4 text-green-500" />
+                                  <span>Shared from others</span>
+                                </div>
+                                <span className="font-medium">₹{item.sharedExpenses.toFixed(2)}</span>
+                              </div>
+                            )}
+                            
+                            <div className="pt-2 border-t">
+                              <div className="flex items-center justify-between font-semibold">
+                                <span>Total</span>
+                                <span>₹{item.amount.toFixed(2)}</span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </HoverCardContent>
+                    </HoverCard>
+                    
                     <div className="flex items-center gap-2">
                       <div className="text-right">
                         <p className="font-semibold">₹{item.amount.toFixed(2)}</p>

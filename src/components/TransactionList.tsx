@@ -149,13 +149,20 @@ export const TransactionList = ({
               <div className="flex items-center gap-3 flex-1">
                 {renderCategoryIndicator(transaction.category)}
                 <div className="flex-1 min-w-0">
-                  <p className="font-medium truncate">{transaction.description}</p>
+                  <p className="font-medium truncate" title={transaction.description}>
+                    {transaction.description}
+                  </p>
                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <span className="capitalize">{
+                    <span className="capitalize truncate" title={
                       transaction.category.split(',').length > 1 
+                        ? transaction.category.split(',').map(c => getCategoryInfo(c.trim()).label).join(', ')
+                        : getCategoryInfo(transaction.category).label
+                    }>
+                      {transaction.category.split(',').length > 1 
                         ? 'Multiple categories' 
                         : getCategoryInfo(transaction.category).label
-                    }</span>
+                      }
+                    </span>
                     <span>•</span>
                     <span>
                       {isToday(new Date(transaction.date)) 
@@ -163,6 +170,12 @@ export const TransactionList = ({
                         : format(new Date(transaction.date), 'MMM d')
                       }
                     </span>
+                    {transaction.paidBy && transaction.paidBy !== 'current-user' && (
+                      <>
+                        <span>•</span>
+                        <span className="text-green-600 text-xs">shared</span>
+                      </>
+                    )}
                   </div>
                 </div>
               </div>
