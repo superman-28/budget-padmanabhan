@@ -95,7 +95,7 @@ export const MonthlyTable = ({
               <span className="text-sm">{category.icon} {category.label}</span>
             </button>
           </HoverCardTrigger>
-          <HoverCardContent className="w-64 p-3">
+          <HoverCardContent className="w-64 p-3 bg-background/95 backdrop-blur-sm border shadow-lg">
             <div className="space-y-3">
               <div className="flex items-center gap-2">
                 <span className="text-xl">{category.icon}</span>
@@ -148,7 +148,7 @@ export const MonthlyTable = ({
             </span>
           </div>
         </HoverCardTrigger>
-        <HoverCardContent className="w-72 p-3">
+        <HoverCardContent className="w-72 p-3 bg-background/95 backdrop-blur-sm border shadow-lg">
           <div className="space-y-3">
             <div className="flex items-center gap-2">
               <span className="text-lg">

@@ -143,13 +143,13 @@ export const TransactionList = ({
           {filteredTransactions.map((transaction) => (
             <div
               key={transaction.id}
-              className="flex items-center justify-between p-3 rounded-lg surface-variant interactive group relative"
+              className="flex items-center justify-between p-3 rounded-lg border group relative hover:bg-accent/20 transition-colors"
               style={getCardStyle(transaction.category)}
             >
               <div className="flex items-center gap-3 flex-1">
                 {renderCategoryIndicator(transaction.category)}
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium truncate" title={transaction.description}>
+                <div className="flex-1 min-w-0 max-w-[200px]">
+                  <p className="font-medium truncate break-words" title={transaction.description}>
                     {transaction.description}
                   </p>
                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
