@@ -227,6 +227,7 @@ export const MonthlyTable = ({
                   <TableHead>Date</TableHead>
                   <TableHead>Description</TableHead>
                   <TableHead>Category</TableHead>
+                  <TableHead>Added by</TableHead>
                   <TableHead>Type</TableHead>
                   <TableHead className="text-right">Amount</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
@@ -246,6 +247,21 @@ export const MonthlyTable = ({
                       <TableCell>{transaction.description}</TableCell>
                       <TableCell>
                         {renderCategoryCell(transaction.category, transaction)}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          {transaction.paidBy && transaction.paidBy !== 'current-user' ? (
+                            <>
+                              <Users className="h-4 w-4 text-blue-500" />
+                              <span className="text-sm text-blue-600">Shared</span>
+                            </>
+                          ) : (
+                            <>
+                              <User className="h-4 w-4 text-green-500" />
+                              <span className="text-sm text-green-600">You</span>
+                            </>
+                          )}
+                        </div>
                       </TableCell>
                       <TableCell>
                         <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
@@ -275,7 +291,7 @@ export const MonthlyTable = ({
                     </TableRow>
                     {editingTransaction === transaction.id && (
                       <TableRow>
-                        <TableCell colSpan={6} className="p-0">
+                        <TableCell colSpan={7} className="p-0">
                           <TransactionEditForm
                             transaction={transaction}
                             categories={categories}

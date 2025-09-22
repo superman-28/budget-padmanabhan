@@ -143,7 +143,7 @@ export const TransactionList = ({
           {filteredTransactions.map((transaction) => (
             <div
               key={transaction.id}
-              className="flex items-center justify-between p-3 rounded-lg border group relative hover:bg-accent/20 transition-colors"
+              className="flex items-center justify-between p-3 rounded-lg group relative"
               style={getCardStyle(transaction.category)}
             >
               <div className="flex items-center gap-3 flex-1">
