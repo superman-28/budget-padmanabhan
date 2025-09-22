@@ -56,14 +56,8 @@ export const TransactionList = ({
     if (colors.length === 1) {
       return { borderLeft: `4px solid ${colors[0]}` };
     } else {
-      const gradientColors = colors.join(', ');
-      return { 
-        borderLeft: `4px solid transparent`,
-        backgroundImage: `linear-gradient(to right, ${gradientColors})`,
-        backgroundClip: 'padding-box',
-        borderImageSource: `linear-gradient(to right, ${gradientColors})`,
-        borderImageSlice: 1
-      };
+      // Just use the first color for border, no background gradient
+      return { borderLeft: `4px solid ${colors[0]}` };
     }
   };
 

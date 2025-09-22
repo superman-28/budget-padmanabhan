@@ -252,8 +252,10 @@ export const MonthlyTable = ({
                         <div className="flex items-center gap-2">
                           {transaction.paidBy && transaction.paidBy !== 'current-user' ? (
                             <>
-                              <Users className="h-4 w-4 text-blue-500" />
-                              <span className="text-sm text-blue-600">Shared</span>
+                              <User className="h-4 w-4 text-blue-500" />
+                              <span className="text-sm text-blue-600">
+                                {transaction.paidBy}
+                              </span>
                             </>
                           ) : (
                             <>
