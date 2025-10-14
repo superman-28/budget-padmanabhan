@@ -1,12 +1,15 @@
 
-import { useMemo } from 'react';
-import { X, Calendar, User, Share2 } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { X, Calendar, User, Share2, Filter } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { Transaction } from '@/pages/Index';
-import { format, isToday } from 'date-fns';
+import { format, isToday, isSameMonth, startOfMonth } from 'date-fns';
+import { cn } from '@/lib/utils';
 
 interface CategoryDetailModalProps {
   categoryValue: string;
@@ -28,11 +31,17 @@ export const CategoryDetailModal = ({
   onDeleteTransaction
 }: CategoryDetailModalProps) => {
   const { toast } = useToast();
+  const [filterMonth, setFilterMonth] = useState<Date | null>(null);
   const categoryTransactions = useMemo(() => {
-    return transactions
-      .filter(t => t.category.split(',').map(c => c.trim()).includes(categoryValue))
-      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  }, [transactions, categoryValue]);
+    let filtered = transactions
+      .filter(t => t.category.split(',').map(c => c.trim()).includes(categoryValue));
+    
+    if (filterMonth) {
+      filtered = filtered.filter(t => isSameMonth(new Date(t.date), filterMonth));
+    }
+    
+    return filtered.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  }, [transactions, categoryValue, filterMonth]);
 
   const { totalExpenses, totalIncome, totalAmount } = useMemo(() => {
     let expenses = 0;
@@ -119,6 +128,35 @@ ${categoryTransactions.map(t => {
             </div>
           </CardTitle>
           <div className="flex gap-2">
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="ghost" size="sm" className={cn(filterMonth && "bg-accent")}>
+                  <Filter className="h-4 w-4" />
+                  {filterMonth && <span className="ml-1 text-xs">{format(filterMonth, 'MMM yyyy')}</span>}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="end">
+                <CalendarComponent
+                  mode="single"
+                  selected={filterMonth || undefined}
+                  onSelect={(date) => setFilterMonth(date ? startOfMonth(date) : null)}
+                  initialFocus
+                  className={cn("p-3 pointer-events-auto")}
+                />
+                {filterMonth && (
+                  <div className="p-2 border-t">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="w-full"
+                      onClick={() => setFilterMonth(null)}
+                    >
+                      Clear Filter
+                    </Button>
+                  </div>
+                )}
+              </PopoverContent>
+            </Popover>
             <Button variant="ghost" size="sm" onClick={handleShareCategory}>
               <Share2 className="h-4 w-4" />
             </Button>
