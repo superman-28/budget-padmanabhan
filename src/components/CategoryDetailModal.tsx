@@ -1,7 +1,8 @@
 
 import { useMemo } from 'react';
-import { X, Calendar, User } from 'lucide-react';
+import { X, Calendar, User, Share2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Transaction } from '@/pages/Index';
@@ -26,6 +27,7 @@ export const CategoryDetailModal = ({
   onClose,
   onDeleteTransaction
 }: CategoryDetailModalProps) => {
+  const { toast } = useToast();
   const categoryTransactions = useMemo(() => {
     return transactions
       .filter(t => t.category.split(',').map(c => c.trim()).includes(categoryValue))
@@ -55,6 +57,34 @@ export const CategoryDetailModal = ({
   }, [categoryTransactions]);
 
   const netAmount = totalExpenses - totalIncome;
+
+  const handleShareTransaction = async (transaction: Transaction) => {
+    const categoryCount = transaction.category.split(',').length;
+    const allocatedAmount = transaction.amount / categoryCount;
+    const shareText = `${transaction.description}
+Amount: ₹${allocatedAmount.toFixed(2)}${categoryCount > 1 ? ` (of ₹${transaction.amount.toFixed(2)})` : ''}
+Category: ${categoryLabel}
+Date: ${format(new Date(transaction.date), 'MMM d, yyyy')}
+${transaction.paidBy ? `Paid by: ${transaction.paidBy}` : ''}
+Type: ${transaction.type}`;
+
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: 'Transaction Details',
+          text: shareText,
+        });
+      } else {
+        await navigator.clipboard.writeText(shareText);
+        toast({
+          title: "Copied to clipboard",
+          description: "Transaction details copied successfully",
+        });
+      }
+    } catch (error) {
+      console.error('Error sharing:', error);
+    }
+  };
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
@@ -154,6 +184,15 @@ export const CategoryDetailModal = ({
                               </p>
                             )}
                           </div>
+                          
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleShareTransaction(transaction)}
+                            className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                          >
+                            <Share2 className="h-4 w-4" />
+                          </Button>
                           
                           <Button
                             variant="ghost"
