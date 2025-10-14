@@ -58,27 +58,31 @@ export const CategoryDetailModal = ({
 
   const netAmount = totalExpenses - totalIncome;
 
-  const handleShareTransaction = async (transaction: Transaction) => {
-    const categoryCount = transaction.category.split(',').length;
-    const allocatedAmount = transaction.amount / categoryCount;
-    const shareText = `${transaction.description}
-Amount: ₹${allocatedAmount.toFixed(2)}${categoryCount > 1 ? ` (of ₹${transaction.amount.toFixed(2)})` : ''}
-Category: ${categoryLabel}
-Date: ${format(new Date(transaction.date), 'MMM d, yyyy')}
-${transaction.paidBy ? `Paid by: ${transaction.paidBy}` : ''}
-Type: ${transaction.type}`;
+  const handleShareCategory = async () => {
+    const shareText = `${categoryIcon} ${categoryLabel} - Summary
+Total Transactions: ${categoryTransactions.length}
+Total Amount: ₹${totalAmount.toFixed(2)}
+Spent: ₹${totalExpenses.toFixed(2)}
+Received: ₹${totalIncome.toFixed(2)}${netAmount > 0 ? `\nOwe: ₹${netAmount.toFixed(2)}` : ''}
+
+Transactions:
+${categoryTransactions.map(t => {
+  const categoryCount = t.category.split(',').length;
+  const allocatedAmount = t.amount / categoryCount;
+  return `• ${t.description}: ${t.type === 'expense' ? '-' : '+'}₹${allocatedAmount.toFixed(2)} (${format(new Date(t.date), 'MMM d, yyyy')})`;
+}).join('\n')}`;
 
     try {
       if (navigator.share) {
         await navigator.share({
-          title: 'Transaction Details',
+          title: `${categoryLabel} Category Summary`,
           text: shareText,
         });
       } else {
         await navigator.clipboard.writeText(shareText);
         toast({
           title: "Copied to clipboard",
-          description: "Transaction details copied successfully",
+          description: "Category summary copied successfully",
         });
       }
     } catch (error) {
@@ -114,9 +118,14 @@ Type: ${transaction.type}`;
               </div>
             </div>
           </CardTitle>
-          <Button variant="ghost" size="sm" onClick={onClose}>
-            <X className="h-4 w-4" />
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="ghost" size="sm" onClick={handleShareCategory}>
+              <Share2 className="h-4 w-4" />
+            </Button>
+            <Button variant="ghost" size="sm" onClick={onClose}>
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
         </CardHeader>
         
         <CardContent className="flex-1 min-h-0 p-0">
@@ -184,15 +193,6 @@ Type: ${transaction.type}`;
                               </p>
                             )}
                           </div>
-                          
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleShareTransaction(transaction)}
-                            className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-                          >
-                            <Share2 className="h-4 w-4" />
-                          </Button>
                           
                           <Button
                             variant="ghost"
