@@ -1,6 +1,6 @@
 
 import { useMemo, useState } from 'react';
-import { X, Calendar, User, Share2, Filter } from 'lucide-react';
+import { X, Calendar, User, Share2, Filter, FileDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,6 +10,8 @@ import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { Transaction } from '@/pages/Index';
 import { format, isToday, isSameMonth, startOfMonth } from 'date-fns';
 import { cn } from '@/lib/utils';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 interface CategoryDetailModalProps {
   categoryValue: string;
@@ -99,6 +101,54 @@ ${categoryTransactions.map(t => {
     }
   };
 
+  const handleExportPDF = () => {
+    const doc = new jsPDF();
+    
+    // Add title
+    doc.setFontSize(20);
+    doc.text(`${categoryIcon} ${categoryLabel}`, 14, 20);
+    
+    // Add summary
+    doc.setFontSize(12);
+    doc.text(`Total Transactions: ${categoryTransactions.length}`, 14, 35);
+    doc.text(`Total Amount: ₹${totalAmount.toFixed(2)}`, 14, 42);
+    doc.text(`Spent: ₹${totalExpenses.toFixed(2)}`, 14, 49);
+    doc.text(`Received: ₹${totalIncome.toFixed(2)}`, 14, 56);
+    if (netAmount > 0) {
+      doc.text(`Owe: ₹${netAmount.toFixed(2)}`, 14, 63);
+    }
+    
+    // Add transactions table
+    const tableData = categoryTransactions.map(t => {
+      const categoryCount = t.category.split(',').length;
+      const allocatedAmount = t.amount / categoryCount;
+      return [
+        format(new Date(t.date), 'MMM d, yyyy'),
+        t.description,
+        t.paidBy || '-',
+        t.type,
+        `${t.type === 'expense' ? '-' : '+'}₹${allocatedAmount.toFixed(2)}`,
+        categoryCount > 1 ? `₹${t.amount.toFixed(2)}` : '-'
+      ];
+    });
+    
+    autoTable(doc, {
+      head: [['Date', 'Description', 'Paid By', 'Type', 'Amount', 'Total']],
+      body: tableData,
+      startY: netAmount > 0 ? 70 : 63,
+      theme: 'grid',
+      headStyles: { fillColor: [66, 66, 66] },
+      styles: { fontSize: 9 },
+    });
+    
+    doc.save(`${categoryLabel}-transactions.pdf`);
+    
+    toast({
+      title: "PDF exported",
+      description: "Category transactions saved successfully",
+    });
+  };
+
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <Card className="w-full max-w-2xl h-[90vh] sm:h-[80vh] surface-elevated flex flex-col">
@@ -157,6 +207,9 @@ ${categoryTransactions.map(t => {
                 )}
               </PopoverContent>
             </Popover>
+            <Button variant="ghost" size="sm" onClick={handleExportPDF}>
+              <FileDown className="h-4 w-4" />
+            </Button>
             <Button variant="ghost" size="sm" onClick={handleShareCategory}>
               <Share2 className="h-4 w-4" />
             </Button>
