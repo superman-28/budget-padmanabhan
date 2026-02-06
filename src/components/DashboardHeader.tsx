@@ -1,10 +1,9 @@
 
-import { Calendar, Landmark } from 'lucide-react';
+import { Calendar } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { format } from 'date-fns';
-import { useNavigate } from 'react-router-dom';
 
 interface DashboardHeaderProps {
   selectedDate: Date;
@@ -12,8 +11,6 @@ interface DashboardHeaderProps {
 }
 
 export const DashboardHeader = ({ selectedDate, onDateChange }: DashboardHeaderProps) => {
-  const navigate = useNavigate();
-
   return (
     <div className="surface-elevated rounded-lg p-6 shadow-sm">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -27,10 +24,6 @@ export const DashboardHeader = ({ selectedDate, onDateChange }: DashboardHeaderP
         
         {/* Date Picker */}
         <div className="flex items-center gap-3">
-          <Button variant="outline" onClick={() => navigate('/loans')}>
-            <Landmark className="h-4 w-4 mr-2" />
-            Loans
-          </Button>
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Calendar className="h-4 w-4" />
             <span>Viewing:</span>
