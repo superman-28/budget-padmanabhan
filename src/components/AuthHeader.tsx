@@ -4,12 +4,15 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { LogOut, Bell } from 'lucide-react';
+import { LogOut, Bell, Landmark, Home } from 'lucide-react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { NotificationPanel } from './NotificationPanel';
 import { notificationService, Notification } from '@/services/notificationService';
 
 const AuthHeader = () => {
   const { user, logout } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
   const [showNotifications, setShowNotifications] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
 
@@ -42,6 +45,25 @@ const AuthHeader = () => {
             <p className="font-medium">{user.displayName || 'User'}</p>
             <p className="text-sm text-muted-foreground">{user.email}</p>
           </div>
+          
+          <nav className="flex items-center gap-1 ml-4 border-l pl-4">
+            <Button
+              variant={location.pathname === '/' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => navigate('/')}
+            >
+              <Home className="w-4 h-4 mr-1" />
+              Dashboard
+            </Button>
+            <Button
+              variant={location.pathname === '/loans' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => navigate('/loans')}
+            >
+              <Landmark className="w-4 h-4 mr-1" />
+              Loans
+            </Button>
+          </nav>
         </div>
         
         <div className="flex items-center gap-2">
