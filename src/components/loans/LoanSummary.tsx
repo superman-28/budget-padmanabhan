@@ -8,10 +8,8 @@ interface LoanSummaryProps {
 }
 
 export const LoanSummary = ({ loans }: LoanSummaryProps) => {
-  const totalBorrowed = loans.reduce((sum, l) => sum + l.totalAmount, 0);
+  const totalToRepay = loans.reduce((sum, l) => sum + (l.totalWithInterest || l.totalAmount), 0);
   const totalRemaining = loans.reduce((sum, l) => sum + l.remainingAmount, 0);
-  const totalPaid = totalBorrowed - totalRemaining;
-  const activeLoans = loans.filter((l) => l.status === 'active').length;
   const overdueLoans = loans.filter(
     (l) => l.status === 'active' && isAfter(new Date(), new Date(l.dueDate))
   ).length;
@@ -19,18 +17,18 @@ export const LoanSummary = ({ loans }: LoanSummaryProps) => {
 
   const stats = [
     {
-      label: 'Total Borrowed',
-      value: `₹${totalBorrowed.toFixed(2)}`,
+      label: 'Total to Repay',
+      value: `₹${totalToRepay.toFixed(2)}`,
       icon: Wallet,
       color: 'text-primary',
       bg: 'bg-primary/10',
     },
     {
-      label: 'Remaining to Pay',
+      label: 'Remaining',
       value: `₹${totalRemaining.toFixed(2)}`,
       icon: Clock,
       color: 'text-orange-600',
-      bg: 'bg-orange-100',
+      bg: 'bg-orange-100 dark:bg-orange-900/30',
     },
     {
       label: 'Overdue',
@@ -44,21 +42,21 @@ export const LoanSummary = ({ loans }: LoanSummaryProps) => {
       value: completedLoans.toString(),
       icon: CheckCircle,
       color: 'text-green-600',
-      bg: 'bg-green-100',
+      bg: 'bg-green-100 dark:bg-green-900/30',
     },
   ];
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
       {stats.map((stat) => (
         <Card key={stat.label} className="slide-up">
-          <CardContent className="p-4 flex items-center gap-3">
+          <CardContent className="p-3 sm:p-4 flex items-center gap-3">
             <div className={`p-2 rounded-lg ${stat.bg}`}>
-              <stat.icon className={`h-5 w-5 ${stat.color}`} />
+              <stat.icon className={`h-4 w-4 sm:h-5 sm:w-5 ${stat.color}`} />
             </div>
-            <div>
-              <p className="text-caption text-xs">{stat.label}</p>
-              <p className="text-lg font-bold">{stat.value}</p>
+            <div className="min-w-0">
+              <p className="text-caption text-xs truncate">{stat.label}</p>
+              <p className="text-sm sm:text-lg font-bold truncate">{stat.value}</p>
             </div>
           </CardContent>
         </Card>

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -15,23 +15,54 @@ interface RepaymentDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSubmit: (repayment: Omit<Repayment, 'id'>) => void;
+  editRepayment?: Repayment | null;
+  onEditSubmit?: (repayment: Repayment) => void;
 }
 
-export const RepaymentDialog = ({ loan, open, onOpenChange, onSubmit }: RepaymentDialogProps) => {
+export const RepaymentDialog = ({
+  loan,
+  open,
+  onOpenChange,
+  onSubmit,
+  editRepayment,
+  onEditSubmit,
+}: RepaymentDialogProps) => {
   const [amount, setAmount] = useState('');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [note, setNote] = useState('');
+
+  const isEditing = !!editRepayment;
+
+  // Populate when editing
+  useEffect(() => {
+    if (editRepayment && open) {
+      setAmount(editRepayment.amount.toString());
+      setDate(editRepayment.date);
+      setNote(editRepayment.note || '');
+    } else if (!editRepayment && open) {
+      setAmount('');
+      setDate(new Date().toISOString().split('T')[0]);
+      setNote('');
+    }
+  }, [editRepayment, open]);
+
+  const maxAmount = isEditing
+    ? loan.remainingAmount + (editRepayment?.amount || 0)
+    : loan.remainingAmount;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!amount) return;
 
     const repaymentAmount = parseFloat(amount);
-    if (repaymentAmount > loan.remainingAmount) {
-      return;
+    if (repaymentAmount > maxAmount) return;
+
+    if (isEditing && onEditSubmit && editRepayment) {
+      onEditSubmit({ id: editRepayment.id, amount: repaymentAmount, date, note });
+    } else {
+      onSubmit({ amount: repaymentAmount, date, note });
     }
 
-    onSubmit({ amount: repaymentAmount, date, note });
     setAmount('');
     setNote('');
     setDate(new Date().toISOString().split('T')[0]);
@@ -42,10 +73,13 @@ export const RepaymentDialog = ({ loan, open, onOpenChange, onSubmit }: Repaymen
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Add Repayment — {loan.lenderName}</DialogTitle>
+          <DialogTitle>
+            {isEditing ? 'Edit Repayment' : 'Add Repayment'} — {loan.lenderName}
+          </DialogTitle>
         </DialogHeader>
         <p className="text-sm text-muted-foreground">
-          Remaining: <span className="font-semibold text-foreground">₹{loan.remainingAmount.toFixed(2)}</span>
+          Remaining:{' '}
+          <span className="font-semibold text-foreground">₹{maxAmount.toFixed(2)}</span>
         </p>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
@@ -54,7 +88,7 @@ export const RepaymentDialog = ({ loan, open, onOpenChange, onSubmit }: Repaymen
               id="repayAmount"
               type="number"
               step="0.01"
-              max={loan.remainingAmount}
+              max={maxAmount}
               placeholder="0.00"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
@@ -81,7 +115,7 @@ export const RepaymentDialog = ({ loan, open, onOpenChange, onSubmit }: Repaymen
             />
           </div>
           <Button type="submit" className="w-full">
-            Record Repayment
+            {isEditing ? 'Update Repayment' : 'Record Repayment'}
           </Button>
         </form>
       </DialogContent>
