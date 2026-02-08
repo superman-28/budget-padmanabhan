@@ -150,20 +150,22 @@ export const LoanFormDialog = ({ onSubmit, editLoan, open, onOpenChange }: LoanF
         : parseFloat(emiAmountManual) || 0
       : undefined;
 
-    onSubmit({
+    const loanData: Record<string, any> = {
       lenderName,
       totalAmount: parseFloat(totalAmount),
       description,
       borrowedDate,
       dueDate: effectiveDueDate,
       hasInterest,
-      interestRate: hasInterest ? parseFloat(interestRate) || 0 : undefined,
-      interestType: hasInterest ? interestType : undefined,
-      totalWithInterest: hasInterest ? calculatedTotal : undefined,
-      emiEnabled: emiEnabled || undefined,
-      emiAmount: emiAmountValue,
-      emiCount: emiEnabled ? parseInt(emiCount) || undefined : undefined,
-    });
+      interestRate: hasInterest ? parseFloat(interestRate) || 0 : 0,
+      interestType: hasInterest ? interestType : 'simple',
+      totalWithInterest: hasInterest ? calculatedTotal : 0,
+      emiEnabled: emiEnabled,
+      emiAmount: emiAmountValue ?? 0,
+      emiCount: emiEnabled ? parseInt(emiCount) || 0 : 0,
+    };
+
+    onSubmit(loanData as Omit<Loan, 'id' | 'repayments' | 'remainingAmount' | 'status'>);
 
     setIsOpen(false);
   };
