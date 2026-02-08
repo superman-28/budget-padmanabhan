@@ -18,7 +18,7 @@ export const EMISchedule = ({ loan }: EMIScheduleProps) => {
   return (
     <div className="space-y-2 pt-2 border-t">
       <div className="flex items-center justify-between">
-        <p className="text-sm font-medium">EMI Schedule</p>
+        <p className="text-sm font-medium">Monthly EMI Schedule</p>
         <p className="text-xs text-muted-foreground">
           {paidCount}/{schedule.length} paid
           {overdueCount > 0 && ` • ${overdueCount} overdue`}
