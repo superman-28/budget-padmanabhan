@@ -1,6 +1,6 @@
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { User, onAuthStateChanged, signInWithPopup, signOut } from 'firebase/auth';
+import { User, onAuthStateChanged, signInWithPopup, signOut, signInWithEmailAndPassword, createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { doc, setDoc, serverTimestamp, getDoc } from 'firebase/firestore';
 import { auth, googleProvider, db } from '@/lib/firebase';
 
@@ -8,6 +8,8 @@ interface AuthContextType {
   user: User | null;
   loading: boolean;
   signInWithGoogle: () => Promise<void>;
+  signInWithEmail: (email: string, password: string) => Promise<void>;
+  signUpWithEmail: (email: string, password: string, displayName: string) => Promise<void>;
   logout: () => Promise<void>;
 }
 
@@ -84,11 +86,34 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.log('AuthProvider: Starting Google sign-in');
       const result = await signInWithPopup(auth, googleProvider);
       console.log('AuthProvider: Google sign-in successful:', result.user.email);
-      
-      // Store user info in Firestore immediately after sign-in
       await storeUserInFirestore(result.user);
     } catch (error) {
       console.error('AuthProvider: Error signing in with Google:', error);
+      throw error;
+    }
+  };
+
+  const signInWithEmail = async (email: string, password: string) => {
+    try {
+      console.log('AuthProvider: Starting email sign-in');
+      const result = await signInWithEmailAndPassword(auth, email, password);
+      console.log('AuthProvider: Email sign-in successful:', result.user.email);
+      await storeUserInFirestore(result.user);
+    } catch (error) {
+      console.error('AuthProvider: Error signing in with email:', error);
+      throw error;
+    }
+  };
+
+  const signUpWithEmail = async (email: string, password: string, displayName: string) => {
+    try {
+      console.log('AuthProvider: Starting email sign-up');
+      const result = await createUserWithEmailAndPassword(auth, email, password);
+      await updateProfile(result.user, { displayName });
+      console.log('AuthProvider: Email sign-up successful:', result.user.email);
+      await storeUserInFirestore(result.user);
+    } catch (error) {
+      console.error('AuthProvider: Error signing up with email:', error);
       throw error;
     }
   };
@@ -107,6 +132,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     user,
     loading,
     signInWithGoogle,
+    signInWithEmail,
+    signUpWithEmail,
     logout,
   };
 
