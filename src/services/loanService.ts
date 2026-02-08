@@ -16,6 +16,11 @@ import { Loan, Repayment } from '@/types/loan';
 
 const generateId = () => Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
 
+// Firestore doesn't accept undefined values — strip them before writing
+function stripUndefined(obj: Record<string, any>): Record<string, any> {
+  return Object.fromEntries(Object.entries(obj).filter(([, v]) => v !== undefined));
+}
+
 export const loanService = {
   // ─── Subscriptions ───────────────────────────────────────
 
@@ -63,14 +68,14 @@ export const loanService = {
         loanData.hasInterest && loanData.totalWithInterest ? loanData.totalWithInterest : loanData.totalAmount;
 
       const loansRef = collection(db, 'users', userId, 'loans');
-      const docRef = await addDoc(loansRef, {
+      const docRef = await addDoc(loansRef, stripUndefined({
         ...loanData,
         remainingAmount: effectiveTotal,
         status: 'active',
         repayments: [],
         sharedWith: [],
         createdAt: Timestamp.now(),
-      });
+      }));
       return docRef.id;
     } catch (error) {
       console.error('LoanService: Error adding loan:', error);
@@ -90,12 +95,12 @@ export const loanService = {
       const newRemaining = Math.max(0, effectiveTotal - totalRepaid);
       const newStatus = newRemaining <= 0 ? 'paid' : 'active';
 
-      const updateData = {
+      const updateData = stripUndefined({
         ...loanData,
         remainingAmount: newRemaining,
         status: newStatus,
         updatedAt: Timestamp.now(),
-      };
+      });
 
       await updateDoc(loanRef, updateData);
       await this.syncSharedCopies(userId, loan.id, updateData);
