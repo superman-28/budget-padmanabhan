@@ -235,7 +235,7 @@ export const LoanCard = ({
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
               <CalendarClock className="h-3 w-3" />
               <span>
-                EMI: ₹{loan.emiAmount.toFixed(2)} × {loan.emiCount} installments
+                Monthly EMI: ₹{loan.emiAmount.toFixed(2)}/month × {loan.emiCount} months
               </span>
             </div>
           )}
@@ -268,7 +268,7 @@ export const LoanCard = ({
               onClick={() => setShowEMI(!showEMI)}
             >
               {showEMI ? <ChevronUp className="h-4 w-4 mr-1" /> : <ChevronDown className="h-4 w-4 mr-1" />}
-              EMI Schedule ({loan.emiCount} installments)
+              Monthly EMI Schedule ({loan.emiCount} months)
             </Button>
           )}
 
