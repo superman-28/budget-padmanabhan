@@ -1,11 +1,10 @@
-
 import { useMemo, useState } from 'react';
-import { Calendar, Edit, Eye, User, Users } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Calendar, Edit, User } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card';
 import { Transaction } from '@/pages/Index';
+import { CollapsibleCard } from './CollapsibleCard';
 import { TransactionEditForm } from './TransactionEditForm';
 import { CategoryDetailModal } from './CategoryDetailModal';
 import { startOfMonth, endOfMonth, isWithinInterval, format } from 'date-fns';
@@ -19,24 +18,16 @@ interface MonthlyTableProps {
 }
 
 export const MonthlyTable = ({ 
-  transactions, 
-  selectedDate, 
-  categories, 
-  onUpdateTransaction,
-  onDeleteTransaction 
+  transactions, selectedDate, categories, onUpdateTransaction, onDeleteTransaction 
 }: MonthlyTableProps) => {
   const [editingTransaction, setEditingTransaction] = useState<string | null>(null);
   const [categoryDetail, setCategoryDetail] = useState<{
-    value: string;
-    label: string;
-    icon: string;
-    color: string;
+    value: string; label: string; icon: string; color: string;
   } | null>(null);
 
   const monthlyTransactions = useMemo(() => {
     const monthStart = startOfMonth(selectedDate);
     const monthEnd = endOfMonth(selectedDate);
-    
     return transactions
       .filter(t => isWithinInterval(new Date(t.date), { start: monthStart, end: monthEnd }))
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
@@ -44,308 +35,181 @@ export const MonthlyTable = ({
 
   const getCategoryInfo = (categoryValue: string) => {
     return categories.find(cat => cat.value === categoryValue) || {
-      value: categoryValue,
-      label: categoryValue,
-      icon: '📝',
-      color: '#6b7280'
+      value: categoryValue, label: categoryValue, icon: '📝', color: '#6b7280'
     };
   };
 
-  const getCategoryColors = (categoryString: string) => {
-    const categoryValues = categoryString.split(',').map(c => c.trim());
-    return categoryValues.map(catValue => getCategoryInfo(catValue).color);
-  };
-
   const getRowStyle = (categoryString: string) => {
-    const colors = getCategoryColors(categoryString);
-    if (colors.length === 1) {
-      return { borderLeft: `4px solid ${colors[0]}` };
-    } else {
-      // Split colors horizontally instead of gradient
-      const colorWidth = 100 / colors.length;
-      const colorStops = colors.map((color, index) => 
-        `${color} ${index * colorWidth}% ${(index + 1) * colorWidth}%`
-      ).join(', ');
-      
-      return { 
-        borderLeft: `4px solid transparent`,
-        backgroundImage: `linear-gradient(90deg, ${colorStops})`,
-        backgroundSize: '4px 100%',
-        backgroundRepeat: 'no-repeat'
-      };
-    }
+    const colors = categoryString.split(',').map(c => getCategoryInfo(c.trim()).color);
+    if (colors.length === 1) return { borderLeft: `3px solid ${colors[0]}` };
+    const colorWidth = 100 / colors.length;
+    const stops = colors.map((color, i) => `${color} ${i * colorWidth}% ${(i + 1) * colorWidth}%`).join(', ');
+    return { borderLeft: '3px solid transparent', backgroundImage: `linear-gradient(90deg, ${stops})`, backgroundSize: '3px 100%', backgroundRepeat: 'no-repeat' as const };
   };
 
   const renderCategoryCell = (categoryString: string, transaction: Transaction) => {
     const categoryValues = categoryString.split(',').map(c => c.trim());
-    
     if (categoryValues.length === 1) {
       const category = getCategoryInfo(categoryValues[0]);
       return (
-        <HoverCard>
-          <HoverCardTrigger asChild>
-            <button
-              onClick={() => setCategoryDetail(category)}
-              className="flex items-center gap-2 hover:bg-accent rounded px-2 py-1 transition-colors"
-            >
-              <div 
-                className="w-3 h-3 rounded-full" 
-                style={{ backgroundColor: category.color }}
-              />
-              <span className="text-sm">{category.icon} {category.label}</span>
-            </button>
-          </HoverCardTrigger>
-          <HoverCardContent className="w-64 p-3 bg-background/95 backdrop-blur-sm border shadow-lg">
-            <div className="space-y-3">
-              <div className="flex items-center gap-2">
-                <span className="text-xl">{category.icon}</span>
-                <h4 className="font-semibold">{category.label}</h4>
-              </div>
-              
-              <div className="space-y-2 text-sm">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <User className="h-4 w-4 text-blue-500" />
-                    <span>This expense</span>
-                  </div>
-                  <span className="font-medium">₹{transaction.amount.toFixed(2)}</span>
-                </div>
-                
-                <div className="pt-2 border-t">
-                  <div className="text-xs text-muted-foreground">
-                    {transaction.paidBy ? 'Shared expense' : 'Personal expense'}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </HoverCardContent>
-        </HoverCard>
+        <button onClick={() => setCategoryDetail(category)} className="flex items-center gap-1.5 hover:bg-accent rounded px-1.5 py-0.5 transition-colors text-xs">
+          <div className="w-2 h-2 rounded-full" style={{ backgroundColor: category.color }} />
+          <span>{category.icon} {category.label}</span>
+        </button>
       );
     }
-
     return (
-      <HoverCard>
-        <HoverCardTrigger asChild>
-          <div className="flex items-center gap-2 cursor-pointer hover:bg-accent rounded px-2 py-1 transition-colors">
-            <div className="flex w-3 h-3 rounded-full overflow-hidden">
-              {categoryValues.map((catValue, index) => {
-                const category = getCategoryInfo(catValue.trim());
-                return (
-                  <div
-                    key={catValue}
-                    className="h-full"
-                    style={{ 
-                      backgroundColor: category.color,
-                      width: `${100 / categoryValues.length}%`
-                    }}
-                  />
-                );
-              })}
-            </div>
-            <span className="text-sm">
-              {categoryValues.map(catValue => getCategoryInfo(catValue.trim()).icon).join('')} 
-              Multiple ({categoryValues.length})
-            </span>
-          </div>
-        </HoverCardTrigger>
-        <HoverCardContent className="w-72 p-3 bg-background/95 backdrop-blur-sm border shadow-lg">
-          <div className="space-y-3">
-            <div className="flex items-center gap-2">
-              <span className="text-lg">
-                {categoryValues.map(catValue => getCategoryInfo(catValue.trim()).icon).join('')}
-              </span>
-              <h4 className="font-semibold">Multiple Categories</h4>
-            </div>
-            
-            <div className="space-y-2">
-              {categoryValues.map(catValue => {
-                const category = getCategoryInfo(catValue.trim());
-                const amountPerCategory = transaction.amount / categoryValues.length;
-                return (
-                  <div key={catValue} className="flex items-center justify-between text-sm">
-                    <div className="flex items-center gap-2">
-                      <div 
-                        className="w-2 h-2 rounded-full" 
-                        style={{ backgroundColor: category.color }}
-                      />
-                      <span className="text-sm">{category.icon} {category.label}</span>
-                    </div>
-                    <span className="font-medium">₹{amountPerCategory.toFixed(2)}</span>
-                  </div>
-                );
-              })}
-            </div>
-            
-            <div className="pt-2 border-t">
-              <div className="flex items-center justify-between font-semibold text-sm">
-                <span>Total</span>
-                <span>₹{transaction.amount.toFixed(2)}</span>
-              </div>
-              <div className="text-xs text-muted-foreground mt-1">
-                {transaction.paidBy ? 'Shared expense' : 'Personal expense'}
-              </div>
-            </div>
-          </div>
-        </HoverCardContent>
-      </HoverCard>
+      <div className="flex items-center gap-1 text-xs">
+        <div className="flex w-3 h-3 rounded-full overflow-hidden">
+          {categoryValues.map((catValue) => {
+            const cat = getCategoryInfo(catValue);
+            return <div key={catValue} className="h-full" style={{ backgroundColor: cat.color, width: `${100 / categoryValues.length}%` }} />;
+          })}
+        </div>
+        <span>{categoryValues.map(v => getCategoryInfo(v).icon).join('')} ({categoryValues.length})</span>
+      </div>
     );
   };
 
-  if (monthlyTransactions.length === 0) {
-    return (
-      <Card className="surface-elevated shadow-sm">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Calendar className="h-5 w-5 text-primary" />
-            Monthly Overview
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-center py-8 text-muted-foreground">
-            <Calendar className="h-12 w-12 mx-auto mb-4 opacity-20" />
-            <p>No transactions this month</p>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
+  const totalExpenses = monthlyTransactions.filter(t => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
+  const totalIncome = monthlyTransactions.filter(t => t.type === 'income').reduce((s, t) => s + t.amount, 0);
 
   return (
     <>
-      <Card className="surface-elevated shadow-sm">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Calendar className="h-5 w-5 text-primary" />
-            Monthly Overview - {format(selectedDate, 'MMMM yyyy')}
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Description</TableHead>
-                  <TableHead>Category</TableHead>
-                  <TableHead>Added by</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead className="text-right">Amount</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {monthlyTransactions.map((transaction) => (
-                  <>
-                    <TableRow 
-                      key={transaction.id}
-                      style={getRowStyle(transaction.category)}
-                      className="relative"
-                    >
-                      <TableCell className="font-medium">
-                        {format(new Date(transaction.date), 'MMM dd')}
-                      </TableCell>
-                      <TableCell>{transaction.description}</TableCell>
-                      <TableCell>
-                        {renderCategoryCell(transaction.category, transaction)}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          {transaction.paidBy && transaction.paidBy !== 'current-user' ? (
-                            <>
-                              <User className="h-4 w-4 text-blue-500" />
-                              <span className="text-sm text-blue-600">
-                                {transaction.paidBy}
-                              </span>
-                            </>
-                          ) : (
-                            <>
-                              <User className="h-4 w-4 text-green-500" />
-                              <span className="text-sm text-green-600">You</span>
-                            </>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                          transaction.type === 'expense' 
-                            ? 'bg-red-100 text-red-800' 
-                            : 'bg-green-100 text-green-800'
-                        }`}>
-                          {transaction.type}
-                        </span>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <span className={`font-semibold ${
-                          transaction.type === 'expense' ? 'text-red-600' : 'text-green-600'
-                        }`}>
+      <CollapsibleCard
+        title={`Monthly Overview - ${format(selectedDate, 'MMM yyyy')}`}
+        icon={<Calendar className="h-4 w-4 text-primary" />}
+        defaultOpen={false}
+      >
+        {monthlyTransactions.length === 0 ? (
+          <div className="text-center py-6 text-muted-foreground">
+            <Calendar className="h-10 w-10 mx-auto mb-3 opacity-20" />
+            <p className="text-sm">No transactions this month</p>
+          </div>
+        ) : (
+          <>
+            {/* Mobile: card view */}
+            <div className="block sm:hidden space-y-2">
+              {monthlyTransactions.map((transaction) => (
+                <div key={transaction.id}>
+                  <div className="p-3 rounded-lg border border-border/50 space-y-2" style={{ borderLeft: `3px solid ${getCategoryInfo(transaction.category.split(',')[0].trim()).color}` }}>
+                    <div className="flex justify-between items-start">
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium truncate">{transaction.description}</p>
+                        <p className="text-xs text-muted-foreground">{format(new Date(transaction.date), 'MMM dd')}</p>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <span className={`text-sm font-semibold ${transaction.type === 'expense' ? 'text-destructive' : 'text-success'}`}>
                           {transaction.type === 'expense' ? '-' : '+'}₹{transaction.amount.toFixed(2)}
                         </span>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setEditingTransaction(transaction.id)}
-                        >
-                          <Edit className="h-4 w-4" />
+                        <Button variant="ghost" size="sm" onClick={() => setEditingTransaction(transaction.id)} className="h-7 w-7 p-0">
+                          <Edit className="h-3 w-3" />
                         </Button>
-                      </TableCell>
-                    </TableRow>
-                    {editingTransaction === transaction.id && (
-                      <TableRow>
-                        <TableCell colSpan={7} className="p-0">
-                          <TransactionEditForm
-                            transaction={transaction}
-                            categories={categories}
-                            onSave={(updatedTransaction) => {
-                              onUpdateTransaction(updatedTransaction);
-                              setEditingTransaction(null);
-                            }}
-                            onDelete={(transactionId) => {
-                              onDeleteTransaction(transactionId);
-                              setEditingTransaction(null);
-                            }}
-                            onCancel={() => setEditingTransaction(null)}
-                          />
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      {renderCategoryCell(transaction.category, transaction)}
+                      {transaction.paidBy && <span className="text-primary/70">{transaction.paidBy}</span>}
+                      {transaction.paymentMode && <span className="bg-accent px-1.5 py-0.5 rounded text-xs">{transaction.paymentMode}</span>}
+                    </div>
+                  </div>
+                  {editingTransaction === transaction.id && (
+                    <div className="mt-1">
+                      <TransactionEditForm
+                        transaction={transaction} categories={categories}
+                        onSave={(t) => { onUpdateTransaction(t); setEditingTransaction(null); }}
+                        onDelete={(id) => { onDeleteTransaction(id); setEditingTransaction(null); }}
+                        onCancel={() => setEditingTransaction(null)}
+                      />
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            {/* Desktop: table view */}
+            <div className="hidden sm:block rounded-md border overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow className="text-xs">
+                    <TableHead className="py-2">Date</TableHead>
+                    <TableHead className="py-2">Description</TableHead>
+                    <TableHead className="py-2">Category</TableHead>
+                    <TableHead className="py-2">By</TableHead>
+                    <TableHead className="py-2">Mode</TableHead>
+                    <TableHead className="py-2">Type</TableHead>
+                    <TableHead className="text-right py-2">Amount</TableHead>
+                    <TableHead className="text-right py-2">Edit</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {monthlyTransactions.map((transaction) => (
+                    <>
+                      <TableRow key={transaction.id} style={getRowStyle(transaction.category)} className="text-xs">
+                        <TableCell className="py-2">{format(new Date(transaction.date), 'MMM dd')}</TableCell>
+                        <TableCell className="py-2 max-w-[150px] truncate">{transaction.description}</TableCell>
+                        <TableCell className="py-2">{renderCategoryCell(transaction.category, transaction)}</TableCell>
+                        <TableCell className="py-2">
+                          <div className="flex items-center gap-1">
+                            <User className="h-3 w-3 text-primary" />
+                            <span className="truncate max-w-[80px]">{transaction.paidBy || 'You'}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="py-2">
+                          {transaction.paymentMode && (
+                            <span className="bg-accent px-1.5 py-0.5 rounded text-xs">{transaction.paymentMode}</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="py-2">
+                          <span className={`inline-flex px-2 py-0.5 rounded-full text-xs font-medium ${
+                            transaction.type === 'expense' ? 'bg-destructive/10 text-destructive' : 'bg-success/10 text-success'
+                          }`}>{transaction.type}</span>
+                        </TableCell>
+                        <TableCell className="text-right py-2">
+                          <span className={`font-semibold ${transaction.type === 'expense' ? 'text-destructive' : 'text-success'}`}>
+                            {transaction.type === 'expense' ? '-' : '+'}₹{transaction.amount.toFixed(2)}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-right py-2">
+                          <Button variant="ghost" size="sm" onClick={() => setEditingTransaction(transaction.id)} className="h-7 w-7 p-0">
+                            <Edit className="h-3 w-3" />
+                          </Button>
                         </TableCell>
                       </TableRow>
-                    )}
-                  </>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-          
-          <div className="mt-4 flex justify-between items-center text-sm text-muted-foreground">
-            <span>{monthlyTransactions.length} transactions</span>
-            <div className="flex gap-4">
-              <span className="text-red-600">
-                Total Expenses: ₹
-                {monthlyTransactions
-                  .filter(t => t.type === 'expense')
-                  .reduce((sum, t) => sum + t.amount, 0)
-                  .toFixed(2)}
-              </span>
-              <span className="text-green-600">
-                Total Income: ₹
-                {monthlyTransactions
-                  .filter(t => t.type === 'income')
-                  .reduce((sum, t) => sum + t.amount, 0)
-                  .toFixed(2)}
-              </span>
+                      {editingTransaction === transaction.id && (
+                        <TableRow key={`edit-${transaction.id}`}>
+                          <TableCell colSpan={8} className="p-0">
+                            <TransactionEditForm
+                              transaction={transaction} categories={categories}
+                              onSave={(t) => { onUpdateTransaction(t); setEditingTransaction(null); }}
+                              onDelete={(id) => { onDeleteTransaction(id); setEditingTransaction(null); }}
+                              onCancel={() => setEditingTransaction(null)}
+                            />
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </>
+                  ))}
+                </TableBody>
+              </Table>
             </div>
-          </div>
-        </CardContent>
-      </Card>
+
+            <div className="mt-3 flex flex-wrap justify-between items-center text-xs text-muted-foreground gap-2">
+              <span>{monthlyTransactions.length} transactions</span>
+              <div className="flex gap-3">
+                <span className="text-destructive font-medium">Expenses: ₹{totalExpenses.toFixed(2)}</span>
+                <span className="text-success font-medium">Income: ₹{totalIncome.toFixed(2)}</span>
+              </div>
+            </div>
+          </>
+        )}
+      </CollapsibleCard>
 
       {categoryDetail && (
         <CategoryDetailModal
-          categoryValue={categoryDetail.value}
-          categoryLabel={categoryDetail.label}
-          categoryIcon={categoryDetail.icon}
-          categoryColor={categoryDetail.color}
-          transactions={transactions}
-          onClose={() => setCategoryDetail(null)}
+          categoryValue={categoryDetail.value} categoryLabel={categoryDetail.label}
+          categoryIcon={categoryDetail.icon} categoryColor={categoryDetail.color}
+          transactions={transactions} onClose={() => setCategoryDetail(null)}
           onDeleteTransaction={onDeleteTransaction}
         />
       )}

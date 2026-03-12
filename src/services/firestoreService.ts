@@ -207,4 +207,60 @@ export const firestoreService = {
       }
     );
   },
+
+  // Payment Modes
+  async addPaymentMode(userId: string, mode: { value: string; label: string; icon: string }) {
+    try {
+      const ref = collection(db, 'users', userId, 'paymentModes');
+      await addDoc(ref, mode);
+    } catch (error) {
+      console.error('FirestoreService: Error adding payment mode:', error);
+      throw error;
+    }
+  },
+
+  async updatePaymentMode(userId: string, oldValue: string, newMode: { value: string; label: string; icon: string }) {
+    try {
+      const ref = collection(db, 'users', userId, 'paymentModes');
+      const q = query(ref, where('value', '==', oldValue));
+      const snapshot = await getDocs(q);
+      if (!snapshot.empty) {
+        await updateDoc(snapshot.docs[0].ref, { ...newMode });
+      }
+    } catch (error) {
+      console.error('FirestoreService: Error updating payment mode:', error);
+      throw error;
+    }
+  },
+
+  async deletePaymentMode(userId: string, modeValue: string) {
+    try {
+      const ref = collection(db, 'users', userId, 'paymentModes');
+      const q = query(ref, where('value', '==', modeValue));
+      const snapshot = await getDocs(q);
+      if (!snapshot.empty) {
+        await deleteDoc(snapshot.docs[0].ref);
+      }
+    } catch (error) {
+      console.error('FirestoreService: Error deleting payment mode:', error);
+      throw error;
+    }
+  },
+
+  subscribeToPaymentModes(userId: string, callback: (modes: { value: string; label: string; icon: string }[]) => void) {
+    const ref = collection(db, 'users', userId, 'paymentModes');
+    return onSnapshot(ref,
+      (snapshot) => {
+        const modes: { value: string; label: string; icon: string }[] = [];
+        snapshot.forEach((doc) => {
+          modes.push(doc.data() as { value: string; label: string; icon: string });
+        });
+        callback(modes);
+      },
+      (error) => {
+        console.error('FirestoreService: Error in paymentModes subscription:', error);
+        callback([]);
+      }
+    );
+  },
 };
