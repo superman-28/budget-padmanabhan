@@ -1,6 +1,5 @@
-
 import { useState } from 'react';
-import { Plus, DollarSign, X, Calendar, Settings, User } from 'lucide-react';
+import { Plus, DollarSign, X, Calendar, Settings, User, Wallet } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -10,6 +9,7 @@ import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 import { CategoryManager } from './CategoryManager';
 import { useAuth } from '@/contexts/AuthContext';
+import { PaymentMode } from './PaymentModeManager';
 
 interface ExpenseFormProps {
   onAddTransaction: (transaction: Omit<Transaction, 'id'>) => void;
@@ -17,6 +17,7 @@ interface ExpenseFormProps {
   onAddCategory: (category: { value: string; label: string; icon: string; color: string }) => void;
   onUpdateCategory: (oldValue: string, newCategory: { value: string; label: string; icon: string; color: string }) => void;
   onDeleteCategory: (categoryValue: string) => void;
+  paymentModes?: PaymentMode[];
 }
 
 export const ExpenseForm = ({ 
@@ -24,7 +25,8 @@ export const ExpenseForm = ({
   categories, 
   onAddCategory,
   onUpdateCategory,
-  onDeleteCategory
+  onDeleteCategory,
+  paymentModes = [],
 }: ExpenseFormProps) => {
   const { user } = useAuth();
   const [amount, setAmount] = useState('');
@@ -33,6 +35,7 @@ export const ExpenseForm = ({
   const [date, setDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [type, setType] = useState<'expense' | 'income'>('expense');
   const [paidBy, setPaidBy] = useState(user?.email || '');
+  const [paymentMode, setPaymentMode] = useState('');
   const [showCategoryManager, setShowCategoryManager] = useState(false);
   const { toast } = useToast();
 
@@ -50,21 +53,13 @@ export const ExpenseForm = ({
 
     const numAmount = parseFloat(amount);
     if (isNaN(numAmount) || numAmount <= 0) {
-      toast({
-        title: "Invalid Amount",
-        description: "Please enter a valid positive amount",
-        variant: "destructive",
-      });
+      toast({ title: "Invalid Amount", description: "Please enter a valid positive amount", variant: "destructive" });
       return;
     }
 
-    const selectedDate = new Date(date);
-    if (isNaN(selectedDate.getTime())) {
-      toast({
-        title: "Invalid Date",
-        description: "Please select a valid date",
-        variant: "destructive",
-      });
+    const selectedDateObj = new Date(date);
+    if (isNaN(selectedDateObj.getTime())) {
+      toast({ title: "Invalid Date", description: "Please select a valid date", variant: "destructive" });
       return;
     }
 
@@ -72,40 +67,35 @@ export const ExpenseForm = ({
       amount: numAmount,
       category: selectedCategories.join(','),
       description: description.trim() || 'No description',
-      date: selectedDate.toISOString(),
+      date: selectedDateObj.toISOString(),
       type,
       paidBy: paidBy.trim(),
+      paymentMode: paymentMode || undefined,
     });
 
-    // Reset form
     setAmount('');
     setSelectedCategories([]);
     setDescription('');
     setDate(format(new Date(), 'yyyy-MM-dd'));
     setPaidBy(user?.email || '');
+    setPaymentMode('');
     
     toast({
       title: "Transaction Added",
-      description: `${type === 'expense' ? 'Expense' : 'Income'} of ₹${numAmount.toFixed(2)} recorded successfully`,
+      description: `${type === 'expense' ? 'Expense' : 'Income'} of ₹${numAmount.toFixed(2)} recorded`,
     });
   };
 
   const toggleCategory = (categoryValue: string) => {
     setSelectedCategories(prev => 
-      prev.includes(categoryValue)
-        ? prev.filter(c => c !== categoryValue)
-        : [...prev, categoryValue]
+      prev.includes(categoryValue) ? prev.filter(c => c !== categoryValue) : [...prev, categoryValue]
     );
   };
 
   if (showCategoryManager) {
     return (
       <div className="space-y-4">
-        <Button 
-          variant="outline" 
-          onClick={() => setShowCategoryManager(false)}
-          className="mb-4"
-        >
+        <Button variant="outline" onClick={() => setShowCategoryManager(false)} className="mb-4">
           ← Back to Add Transaction
         </Button>
         <CategoryManager 
@@ -119,31 +109,27 @@ export const ExpenseForm = ({
   }
 
   return (
-    <Card className="surface-elevated shadow-sm">
-      <CardHeader>
-        <CardTitle className="flex items-center justify-between">
+    <Card className="shadow-sm border-primary/20">
+      <CardHeader className="pb-4">
+        <CardTitle className="flex items-center justify-between text-base">
           <div className="flex items-center gap-2">
             <DollarSign className="h-5 w-5 text-primary" />
             Add Transaction
           </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setShowCategoryManager(true)}
-          >
+          <Button variant="ghost" size="sm" onClick={() => setShowCategoryManager(true)}>
             <Settings className="h-4 w-4" />
           </Button>
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Type Selection */}
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Type */}
           <div className="flex gap-2">
             <Button
               type="button"
               variant={type === 'expense' ? 'default' : 'outline'}
               onClick={() => setType('expense')}
-              className="flex-1"
+              className={`flex-1 ${type === 'expense' ? 'bg-destructive hover:bg-destructive/90' : ''}`}
             >
               Expense
             </Button>
@@ -151,104 +137,92 @@ export const ExpenseForm = ({
               type="button"
               variant={type === 'income' ? 'default' : 'outline'}
               onClick={() => setType('income')}
-              className="flex-1"
+              className={`flex-1 ${type === 'income' ? 'bg-success hover:bg-success/90' : ''}`}
             >
               Income
             </Button>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {/* Amount */}
-            <div className="space-y-2">
-              <Label htmlFor="amount">Amount</Label>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label htmlFor="amount" className="text-xs">Amount</Label>
               <div className="relative">
                 <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-sm font-medium text-muted-foreground">₹</span>
-                <Input
-                  id="amount"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  placeholder="0.00"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                  className="pl-8"
-                />
+                <Input id="amount" type="number" step="0.01" min="0" placeholder="0.00" value={amount} onChange={(e) => setAmount(e.target.value)} className="pl-8" />
               </div>
             </div>
-
-            {/* Date */}
-            <div className="space-y-2">
-              <Label htmlFor="date">Date</Label>
+            <div className="space-y-1.5">
+              <Label htmlFor="date" className="text-xs">Date</Label>
               <div className="relative">
                 <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="date"
-                  type="date"
-                  value={date}
-                  onChange={(e) => setDate(e.target.value)}
-                  className="pl-10"
-                />
+                <Input id="date" type="date" value={date} onChange={(e) => setDate(e.target.value)} className="pl-10" />
               </div>
             </div>
           </div>
 
           {/* Paid By */}
-          <div className="space-y-2">
-            <Label htmlFor="paidBy">Paid By</Label>
+          <div className="space-y-1.5">
+            <Label htmlFor="paidBy" className="text-xs">Paid By</Label>
             <div className="relative">
               <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                id="paidBy"
-                type="email"
-                placeholder="Email of person who paid"
-                value={paidBy}
-                onChange={(e) => setPaidBy(e.target.value)}
-                className="pl-10"
-              />
+              <Input id="paidBy" type="email" placeholder="Email of person who paid" value={paidBy} onChange={(e) => setPaidBy(e.target.value)} className="pl-10" />
             </div>
           </div>
 
+          {/* Payment Mode */}
+          {paymentModes.length > 0 && (
+            <div className="space-y-1.5">
+              <Label className="text-xs">Payment Mode</Label>
+              <div className="flex flex-wrap gap-2">
+                {paymentModes.map((mode) => (
+                  <button
+                    key={mode.value}
+                    type="button"
+                    onClick={() => setPaymentMode(paymentMode === mode.value ? '' : mode.value)}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-sm transition-all ${
+                      paymentMode === mode.value
+                        ? 'bg-primary text-primary-foreground border-primary shadow-sm'
+                        : 'bg-background hover:bg-accent border-border'
+                    }`}
+                  >
+                    <span>{mode.icon}</span>
+                    <span>{mode.label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Categories */}
-          <div className="space-y-2">
-            <Label>Categories</Label>
-            <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto">
+          <div className="space-y-1.5">
+            <Label className="text-xs">Categories</Label>
+            <div className="flex flex-wrap gap-1.5 max-h-28 overflow-y-auto">
               {categories.map((cat) => (
                 <button
                   key={cat.value}
                   type="button"
                   onClick={() => toggleCategory(cat.value)}
-                  className={`flex items-center gap-2 px-3 py-2 rounded-md border text-sm transition-colors ${
+                  className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-full border text-xs transition-all ${
                     selectedCategories.includes(cat.value)
-                      ? 'bg-primary text-primary-foreground border-primary'
-                      : 'bg-background hover:bg-accent'
+                      ? 'bg-primary text-primary-foreground border-primary shadow-sm'
+                      : 'bg-background hover:bg-accent border-border'
                   }`}
                 >
-                  <div 
-                    className="w-3 h-3 rounded-full" 
-                    style={{ backgroundColor: cat.color }}
-                  />
+                  <div className="w-2 h-2 rounded-full" style={{ backgroundColor: cat.color }} />
                   <span>{cat.icon}</span>
                   <span>{cat.label}</span>
-                  {selectedCategories.includes(cat.value) && (
-                    <X className="h-3 w-3" />
-                  )}
+                  {selectedCategories.includes(cat.value) && <X className="h-3 w-3" />}
                 </button>
               ))}
             </div>
           </div>
 
           {/* Description */}
-          <div className="space-y-2">
-            <Label htmlFor="description">Description <span className="text-xs text-muted-foreground">(Optional)</span></Label>
-            <Input
-              id="description"
-              placeholder="What was this for? (Optional)"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-            />
+          <div className="space-y-1.5">
+            <Label htmlFor="description" className="text-xs">Description <span className="text-muted-foreground">(Optional)</span></Label>
+            <Input id="description" placeholder="What was this for?" value={description} onChange={(e) => setDescription(e.target.value)} />
           </div>
 
-          {/* Submit Button */}
           <Button type="submit" className="w-full">
             <Plus className="h-4 w-4 mr-2" />
             Add {type === 'expense' ? 'Expense' : 'Income'}
