@@ -19,6 +19,7 @@ export interface Transaction {
   date: string;
   type: 'expense' | 'income';
   paidBy: string; // Email of the person who paid
+  paymentMode?: string; // Payment mode value
 }
 
 interface Category {
