@@ -6,6 +6,7 @@ import { TransactionList } from '@/components/TransactionList';
 import { MonthlyChart } from '@/components/MonthlyChart';
 import { CategoryBreakdown } from '@/components/CategoryBreakdown';
 import { MonthlyTable } from '@/components/MonthlyTable';
+import { PaymentModeManager, PaymentMode } from '@/components/PaymentModeManager';
 import AuthHeader from '@/components/AuthHeader';
 import { useAuth } from '@/contexts/AuthContext';
 import { firestoreService } from '@/services/firestoreService';
@@ -18,8 +19,8 @@ export interface Transaction {
   description: string;
   date: string;
   type: 'expense' | 'income';
-  paidBy: string; // Email of the person who paid
-  paymentMode?: string; // Payment mode value
+  paidBy: string;
+  paymentMode?: string;
 }
 
 interface Category {
@@ -29,32 +30,23 @@ interface Category {
   color: string;
 }
 
-const defaultCategories: Category[] = [
-];
+const defaultCategories: Category[] = [];
 
 const Index = () => {
   const { user } = useAuth();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [categories, setCategories] = useState<Category[]>(defaultCategories);
+  const [paymentModes, setPaymentModes] = useState<PaymentMode[]>([]);
   const [loading, setLoading] = useState(true);
 
-  console.log('Index: Component rendering with user:', user?.email);
-
-  // Subscribe to user's data when authenticated
   useEffect(() => {
-    if (!user) {
-      console.log('Index: No user found in useEffect');
-      return;
-    }
-
-    console.log('Index: Setting up Firestore subscriptions for user:', user.uid);
+    if (!user) return;
     setLoading(true);
 
     const unsubscribeTransactions = firestoreService.subscribeToTransactions(
       user.uid,
       (userTransactions) => {
-        console.log('Index: Received transactions:', userTransactions.length);
         setTransactions(userTransactions);
         setLoading(false);
       }
@@ -63,135 +55,121 @@ const Index = () => {
     const unsubscribeCategories = firestoreService.subscribeToCategories(
       user.uid,
       (userCategories) => {
-        console.log('Index: Received categories:', userCategories.length);
         if (userCategories.length > 0) {
           setCategories([...defaultCategories, ...userCategories]);
         }
       }
     );
 
+    const unsubscribePaymentModes = firestoreService.subscribeToPaymentModes(
+      user.uid,
+      (modes) => setPaymentModes(modes)
+    );
+
     return () => {
-      console.log('Index: Cleaning up Firestore subscriptions');
       unsubscribeTransactions();
       unsubscribeCategories();
+      unsubscribePaymentModes();
     };
   }, [user]);
 
   const addTransaction = async (transaction: Omit<Transaction, 'id'>) => {
     if (!user) return;
-    
     try {
-      console.log('Index: Adding transaction');
-      // Add paidBy field defaulting to current user's email
-      const transactionWithPaidBy = {
-        ...transaction,
-        paidBy: user.email!
-      };
-      
+      const transactionWithPaidBy = { ...transaction, paidBy: transaction.paidBy || user.email! };
       const transactionId = await firestoreService.addTransaction(user.uid, transactionWithPaidBy);
-      
-      // Share transaction with linked users
       await userLinkingService.shareTransactionWithLinkedUsers(
-        user.uid,
-        user.email!,
-        { ...transactionWithPaidBy, id: transactionId }
+        user.uid, user.email!, { ...transactionWithPaidBy, id: transactionId }
       );
     } catch (error) {
-      console.error('Index: Error adding transaction:', error);
+      console.error('Error adding transaction:', error);
     }
   };
 
   const updateTransaction = async (transaction: Transaction) => {
     if (!user) return;
-    
     try {
-      console.log('Index: Updating transaction:', transaction.id);
       await firestoreService.updateTransaction(user.uid, transaction);
-      
-      // Update shared transactions with linked users
       await userLinkingService.updateSharedTransaction(user.uid, user.email!, transaction);
     } catch (error) {
-      console.error('Index: Error updating transaction:', error);
+      console.error('Error updating transaction:', error);
     }
   };
 
   const deleteTransaction = async (id: string) => {
     if (!user) return;
-    
     try {
-      console.log('Index: Deleting transaction:', id);
-      
-      // Delete shared transactions first
       await userLinkingService.deleteSharedTransaction(user.uid, id);
-      
-      // Then delete the original transaction
       await firestoreService.deleteTransaction(user.uid, id);
     } catch (error) {
-      console.error('Index: Error deleting transaction:', error);
+      console.error('Error deleting transaction:', error);
     }
   };
 
   const addCategory = async (category: Category) => {
     if (!user) return;
-    
-    try {
-      console.log('Index: Adding category');
-      await firestoreService.addCategory(user.uid, category);
-    } catch (error) {
-      console.error('Index: Error adding category:', error);
-    }
+    try { await firestoreService.addCategory(user.uid, category); } catch (e) { console.error(e); }
   };
 
   const updateCategory = async (oldValue: string, newCategory: Category) => {
     if (!user) return;
-    
-    try {
-      console.log('Index: Updating category:', oldValue, 'to:', newCategory.value);
-      await firestoreService.updateCategory(user.uid, oldValue, newCategory);
-    } catch (error) {
-      console.error('Index: Error updating category:', error);
-    }
+    try { await firestoreService.updateCategory(user.uid, oldValue, newCategory); } catch (e) { console.error(e); }
   };
 
   const deleteCategory = async (categoryValue: string) => {
     if (!user) return;
-    
-    try {
-      console.log('Index: Deleting category:', categoryValue);
-      await firestoreService.deleteCategory(user.uid, categoryValue);
-    } catch (error) {
-      console.error('Index: Error deleting category:', error);
-    }
+    try { await firestoreService.deleteCategory(user.uid, categoryValue); } catch (e) { console.error(e); }
+  };
+
+  const addPaymentMode = async (mode: PaymentMode) => {
+    if (!user) return;
+    try { await firestoreService.addPaymentMode(user.uid, mode); } catch (e) { console.error(e); }
+  };
+
+  const updatePaymentMode = async (oldValue: string, mode: PaymentMode) => {
+    if (!user) return;
+    try { await firestoreService.updatePaymentMode(user.uid, oldValue, mode); } catch (e) { console.error(e); }
+  };
+
+  const deletePaymentMode = async (value: string) => {
+    if (!user) return;
+    try { await firestoreService.deletePaymentMode(user.uid, value); } catch (e) { console.error(e); }
   };
 
   if (loading) {
-    console.log('Index: Showing loading state');
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary mx-auto"></div>
+          <div className="animate-spin rounded-full h-20 w-20 border-b-2 border-primary mx-auto"></div>
           <p className="mt-4 text-muted-foreground">Loading your financial data...</p>
         </div>
       </div>
     );
   }
 
-  console.log('Index: Rendering main dashboard');
   return (
     <div className="min-h-screen bg-background">
       <AuthHeader />
-      <div className="max-w-7xl mx-auto px-4 py-6 space-y-8">
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6 space-y-4 sm:space-y-6">
         <DashboardHeader selectedDate={selectedDate} onDateChange={setSelectedDate} />
         <QuickStats transactions={transactions} selectedDate={selectedDate} />
         
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2 space-y-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
+          <div className="lg:col-span-2 space-y-4 sm:space-y-6">
             <ExpenseForm 
               onAddTransaction={addTransaction} 
               categories={categories}
               onAddCategory={addCategory}
               onUpdateCategory={updateCategory}
               onDeleteCategory={deleteCategory}
+              paymentModes={paymentModes}
+            />
+
+            <PaymentModeManager
+              paymentModes={paymentModes}
+              onAdd={addPaymentMode}
+              onUpdate={updatePaymentMode}
+              onDelete={deletePaymentMode}
             />
             
             <MonthlyChart transactions={transactions} selectedDate={selectedDate} />
@@ -205,7 +183,7 @@ const Index = () => {
             />
           </div>
           
-          <div className="space-y-8">
+          <div className="space-y-4 sm:space-y-6">
             <CategoryBreakdown 
               transactions={transactions} 
               selectedDate={selectedDate}
