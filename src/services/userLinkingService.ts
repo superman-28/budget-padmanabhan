@@ -278,32 +278,38 @@ export const userLinkingService = {
         
         console.log('UserLinkingService: Found', snapshot.size, 'linked users for category:', categoryValue);
         
-        snapshot.forEach(async (linkDoc) => {
+        for (const linkDoc of snapshot.docs) {
           const link = linkDoc.data() as CategoryLink;
           
-          // Add transaction to linked user's account
-          const sharedTransactionId = await firestoreService.addTransaction(link.linkedUserId, {
-            ...transaction,
-            description: `${transaction.description} (shared from ${ownerEmail})`,
-          });
-          
-          // Track this shared transaction for future synchronization
-          await this.trackSharedTransaction(transaction.id || '', sharedTransactionId, ownerUserId, link.linkedUserId, categoryValue);
-          
-          // Send notification to linked user
-          await notificationService.addNotification(link.linkedUserId, {
-            type: 'shared_transaction',
-            title: 'New Shared Transaction',
-            message: `${ownerEmail} added a new ${transaction.type} of ₹${transaction.amount} in category "${categoryValue}": ${transaction.description}`,
-            data: { 
-              categoryValue, 
-              ownerEmail, 
-              amount: transaction.amount,
-              type: transaction.type,
-              description: transaction.description 
-            },
-          });
-        });
+          try {
+            // Add transaction to linked user's account
+            const sharedTransactionId = await firestoreService.addTransaction(link.linkedUserId, {
+              ...transaction,
+              description: `${transaction.description} (shared from ${ownerEmail})`,
+            });
+            
+            // Track this shared transaction for future synchronization
+            await this.trackSharedTransaction(transaction.id || '', sharedTransactionId, ownerUserId, link.linkedUserId, categoryValue);
+            
+            // Send notification to linked user
+            await notificationService.addNotification(link.linkedUserId, {
+              type: 'shared_transaction',
+              title: 'New Shared Transaction',
+              message: `${ownerEmail} added a new ${transaction.type} of ₹${transaction.amount} in category "${categoryValue}": ${transaction.description}`,
+              data: { 
+                categoryValue, 
+                ownerEmail, 
+                amount: transaction.amount,
+                type: transaction.type,
+                description: transaction.description 
+              },
+            });
+            
+            console.log('UserLinkingService: Shared transaction with user:', link.linkedUserId);
+          } catch (err) {
+            console.error('UserLinkingService: Error sharing with linked user:', link.linkedUserId, err);
+          }
+        }
       }
     } catch (error) {
       console.error('UserLinkingService: Error sharing transaction:', error);
