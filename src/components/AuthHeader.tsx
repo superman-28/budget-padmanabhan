@@ -1,12 +1,14 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { LogOut, Bell, Landmark, Home } from 'lucide-react';
+import { LogOut, Bell, Landmark, Home, BellRing } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { NotificationPanel } from './NotificationPanel';
 import { notificationService, Notification } from '@/services/notificationService';
+import { webNotificationService } from '@/services/webNotificationService';
+import { toast } from '@/components/ui/sonner';
 
 const AuthHeader = () => {
   const { user, logout } = useAuth();
@@ -14,12 +16,50 @@ const AuthHeader = () => {
   const location = useLocation();
   const [showNotifications, setShowNotifications] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  const prevNotificationIdsRef = useRef<Set<string>>(new Set());
+  const isFirstLoadRef = useRef(true);
+
+  // Request notification permission on first load
+  useEffect(() => {
+    if (!user) return;
+    
+    if (webNotificationService.isSupported() && !webNotificationService.hasAskedPermission()) {
+      // Small delay so UI loads first
+      const timer = setTimeout(() => {
+        webNotificationService.requestPermission().then((perm) => {
+          if (perm === 'granted') {
+            toast.success('Notifications enabled! You\'ll get alerts for new activity.');
+          }
+        });
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [user]);
+
+  const handleNewNotifications = useCallback((incoming: Notification[]) => {
+    // Detect truly new notifications (not on first load)
+    if (!isFirstLoadRef.current) {
+      const prevIds = prevNotificationIdsRef.current;
+      const newOnes = incoming.filter(n => !n.read && !prevIds.has(n.id));
+      
+      for (const n of newOnes) {
+        webNotificationService.showNotification(n.title, {
+          body: n.message,
+          tag: n.id, // deduplicate
+        });
+      }
+    }
+
+    isFirstLoadRef.current = false;
+    prevNotificationIdsRef.current = new Set(incoming.map(n => n.id));
+    setNotifications(incoming);
+  }, []);
 
   useEffect(() => {
     if (!user) return;
-    const unsubscribe = notificationService.subscribeToNotifications(user.uid, setNotifications);
+    const unsubscribe = notificationService.subscribeToNotifications(user.uid, handleNewNotifications);
     return unsubscribe;
-  }, [user]);
+  }, [user, handleNewNotifications]);
 
   if (!user) return null;
 
