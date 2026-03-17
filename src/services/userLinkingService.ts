@@ -364,21 +364,18 @@ export const userLinkingService = {
       
       console.log('UserLinkingService: Found', snapshot.size, 'shared transactions to delete');
       
-      snapshot.forEach(async (sharedDoc) => {
+      for (const sharedDoc of snapshot.docs) {
         const sharedData = sharedDoc.data() as SharedTransaction;
         
         try {
-          // Delete the shared transaction from the linked user's account
           await firestoreService.deleteTransaction(sharedData.linkedUserId, sharedData.sharedTransactionId);
-          
-          // Delete the tracking record
           await deleteDoc(sharedDoc.ref);
           
           console.log('UserLinkingService: Deleted shared transaction:', sharedData.sharedTransactionId);
         } catch (error) {
           console.error('UserLinkingService: Error deleting shared transaction:', sharedData.sharedTransactionId, error);
         }
-      });
+      }
     } catch (error) {
       console.error('UserLinkingService: Error deleting shared transactions:', error);
     }
