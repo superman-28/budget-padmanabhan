@@ -330,11 +330,10 @@ export const userLinkingService = {
       
       console.log('UserLinkingService: Found', snapshot.size, 'shared transactions to update');
       
-      snapshot.forEach(async (sharedDoc) => {
+      for (const sharedDoc of snapshot.docs) {
         const sharedData = sharedDoc.data() as SharedTransaction;
         
         try {
-          // Update the shared transaction in the linked user's account
           await firestoreService.updateTransaction(sharedData.linkedUserId, {
             ...updatedTransaction,
             id: sharedData.sharedTransactionId,
@@ -345,7 +344,7 @@ export const userLinkingService = {
         } catch (error) {
           console.error('UserLinkingService: Error updating shared transaction:', sharedData.sharedTransactionId, error);
         }
-      });
+      }
     } catch (error) {
       console.error('UserLinkingService: Error updating shared transactions:', error);
     }
