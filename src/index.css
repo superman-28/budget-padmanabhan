@@ -177,15 +177,15 @@
 
   /* Interactive States */
   .interactive {
-    @apply transition-all duration-200 ease-out;
+    @apply transition-all duration-300 ease-out;
   }
 
   .interactive:hover {
-    @apply scale-[1.02] shadow-md;
+    @apply -translate-y-0.5 shadow-md;
   }
 
   .interactive:active {
-    @apply scale-[0.98];
+    @apply translate-y-0;
   }
 
   /* Category Color Classes */
