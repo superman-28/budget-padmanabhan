@@ -96,6 +96,15 @@
     --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.08), 0 2px 4px -2px rgb(0 0 0 / 0.06);
     --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.08), 0 4px 6px -4px rgb(0 0 0 / 0.06);
 
+    /* Pastel Surface Colors */
+    --pastel-rose: 347 77% 96%;
+    --pastel-blue: 217 91% 95%;
+    --pastel-green: 160 84% 94%;
+    --pastel-amber: 38 92% 94%;
+    --pastel-violet: 270 80% 96%;
+    --pastel-cyan: 190 90% 94%;
+    --pastel-indigo: 234 89% 96%;
+
     /* Category Colors */
     --category-food: 38 92% 50%;
     --category-transport: 234 89% 60%;
