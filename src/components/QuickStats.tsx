@@ -11,10 +11,10 @@ interface QuickStatsProps {
 }
 
 const statStyles = [
-  { bg: 'bg-destructive/8', iconBg: 'bg-destructive/12', text: 'text-destructive', border: 'border-destructive/15' },
-  { bg: 'bg-success/8', iconBg: 'bg-success/12', text: 'text-success', border: 'border-success/15' },
+  { bg: 'bg-pastel-rose', iconBg: 'bg-destructive/12', text: 'text-destructive', border: 'border-destructive/15' },
+  { bg: 'bg-pastel-green', iconBg: 'bg-success/12', text: 'text-success', border: 'border-success/15' },
   { bg: '', iconBg: '', text: '', border: '' }, // dynamic
-  { bg: 'bg-primary/8', iconBg: 'bg-primary/12', text: 'text-primary', border: 'border-primary/15' },
+  { bg: 'bg-pastel-indigo', iconBg: 'bg-primary/12', text: 'text-primary', border: 'border-primary/15' },
 ];
 
 export const QuickStats = ({ transactions, selectedDate }: QuickStatsProps) => {
