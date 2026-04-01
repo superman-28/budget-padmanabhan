@@ -133,6 +133,14 @@
     --popover-foreground: 210 20% 92%;
     --secondary: 222 47% 12%;
     --secondary-foreground: 210 20% 92%;
+
+    --pastel-rose: 347 40% 18%;
+    --pastel-blue: 217 40% 18%;
+    --pastel-green: 160 40% 16%;
+    --pastel-amber: 38 40% 16%;
+    --pastel-violet: 270 35% 18%;
+    --pastel-cyan: 190 35% 17%;
+    --pastel-indigo: 234 40% 18%;
   }
 }
 
