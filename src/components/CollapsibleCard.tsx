@@ -1,6 +1,6 @@
+
 import { useState } from 'react';
 import { ChevronDown } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 
 interface CollapsibleCardProps {
@@ -23,35 +23,43 @@ export const CollapsibleCard = ({
   const [isOpen, setIsOpen] = useState(defaultOpen);
 
   return (
-    <Card className={cn('shadow-sm overflow-hidden', className)}>
-      <CardHeader
-        className="cursor-pointer select-none hover:bg-accent/50 transition-colors py-4 px-5"
+    <div
+      className={cn(
+        'rounded-xl border border-border/60 bg-card text-card-foreground overflow-hidden',
+        'shadow-sm transition-shadow duration-300 hover:shadow-md',
+        'animate-fade-in',
+        className
+      )}
+    >
+      <button
+        type="button"
+        className="w-full cursor-pointer select-none px-4 sm:px-5 py-3.5 sm:py-4 transition-colors hover:bg-accent/40"
         onClick={() => setIsOpen(!isOpen)}
       >
-        <CardTitle className="flex items-center justify-between text-base">
-          <div className="flex items-center gap-2">
-            {icon}
+        <div className="flex items-center justify-between text-sm sm:text-base font-semibold">
+          <div className="flex items-center gap-2 text-foreground">
+            {icon && <span className="text-primary">{icon}</span>}
             {title}
           </div>
           <div className="flex items-center gap-2">
             {headerExtra}
             <ChevronDown
               className={cn(
-                'h-4 w-4 text-muted-foreground transition-transform duration-200',
+                'h-4 w-4 text-muted-foreground transition-transform duration-300',
                 isOpen && 'rotate-180'
               )}
             />
           </div>
-        </CardTitle>
-      </CardHeader>
+        </div>
+      </button>
       <div
         className={cn(
-          'transition-all duration-200 ease-out overflow-hidden',
+          'transition-all duration-300 ease-in-out overflow-hidden',
           isOpen ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0'
         )}
       >
-        <CardContent className="pt-0 px-5 pb-5">{children}</CardContent>
+        <div className="px-4 sm:px-5 pb-4 sm:pb-5 pt-0">{children}</div>
       </div>
-    </Card>
+    </div>
   );
 };
