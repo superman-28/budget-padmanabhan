@@ -80,6 +80,7 @@ export const MonthlyTable = ({
         title={`Monthly Overview - ${format(selectedDate, 'MMM yyyy')}`}
         icon={<Calendar className="h-4 w-4 text-primary" />}
         defaultOpen={false}
+        className="bg-pastel-green"
       >
         {monthlyTransactions.length === 0 ? (
           <div className="text-center py-6 text-muted-foreground">

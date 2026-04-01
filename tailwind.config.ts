@@ -67,7 +67,14 @@ export default {
 				},
 				'surface-elevated': 'hsl(var(--surface-elevated))',
 				'surface-container': 'hsl(var(--surface-container))',
-				'surface-variant': 'hsl(var(--surface-variant))'
+				'surface-variant': 'hsl(var(--surface-variant))',
+				'pastel-rose': 'hsl(var(--pastel-rose))',
+				'pastel-blue': 'hsl(var(--pastel-blue))',
+				'pastel-green': 'hsl(var(--pastel-green))',
+				'pastel-amber': 'hsl(var(--pastel-amber))',
+				'pastel-violet': 'hsl(var(--pastel-violet))',
+				'pastel-cyan': 'hsl(var(--pastel-cyan))',
+				'pastel-indigo': 'hsl(var(--pastel-indigo))',
 			},
 			borderRadius: {
 				lg: 'var(--radius)',

@@ -12,7 +12,7 @@ interface DashboardHeaderProps {
 
 export const DashboardHeader = ({ selectedDate, onDateChange }: DashboardHeaderProps) => {
   return (
-    <div className="rounded-xl border border-border/60 bg-card p-5 sm:p-6 shadow-sm animate-fade-in">
+    <div className="rounded-xl border border-border/60 bg-pastel-blue p-5 sm:p-6 shadow-sm animate-fade-in">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="space-y-1">
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">

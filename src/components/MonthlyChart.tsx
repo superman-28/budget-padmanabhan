@@ -52,6 +52,7 @@ export const MonthlyChart = ({ transactions, selectedDate }: MonthlyChartProps) 
       title={`Daily Overview - ${format(selectedDate, 'MMMM yyyy')}`}
       icon={<TrendingUp className="h-4 w-4 text-primary" />}
       defaultOpen={false}
+      className="bg-pastel-cyan"
     >
       <div className="h-64 sm:h-72">
         <ResponsiveContainer width="100%" height="100%">
