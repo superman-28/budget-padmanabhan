@@ -109,7 +109,7 @@ export const ExpenseForm = ({
   }
 
   return (
-    <Card className="shadow-sm border-primary/20">
+    <Card className="shadow-sm border-primary/20 bg-pastel-violet">
       <CardHeader className="pb-4">
         <CardTitle className="flex items-center justify-between text-base">
           <div className="flex items-center gap-2">

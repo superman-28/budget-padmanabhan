@@ -70,6 +70,7 @@ export const TransactionList = ({
         title="Recent Transactions"
         icon={<Calendar className="h-4 w-4 text-primary" />}
         defaultOpen={true}
+        className="bg-pastel-amber"
       >
         {filteredTransactions.length === 0 ? (
           <div className="text-center py-6 text-muted-foreground">
