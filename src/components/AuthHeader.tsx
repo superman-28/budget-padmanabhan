@@ -3,7 +3,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { LogOut, Bell, Landmark, Home, BellRing } from 'lucide-react';
+import { LogOut, Bell, Landmark, Home, BellRing, MapPin } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { NotificationPanel } from './NotificationPanel';
 import { notificationService, Notification } from '@/services/notificationService';
@@ -102,6 +102,15 @@ const AuthHeader = () => {
             >
               <Landmark className="w-4 h-4 sm:mr-1" />
               <span className="hidden sm:inline text-xs">Loans</span>
+            </Button>
+            <Button
+              variant={location.pathname === '/events' ? 'default' : 'ghost'}
+              size="sm"
+              onClick={() => navigate('/events')}
+              className="h-8 px-2 sm:px-3"
+            >
+              <MapPin className="w-4 h-4 sm:mr-1" />
+              <span className="hidden sm:inline text-xs">Events</span>
             </Button>
           </nav>
         </div>

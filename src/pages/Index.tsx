@@ -21,6 +21,8 @@ export interface Transaction {
   type: 'expense' | 'income';
   paidBy: string;
   paymentMode?: string;
+  eventId?: string;
+  eventName?: string;
 }
 
 interface Category {
