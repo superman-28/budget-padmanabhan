@@ -6,6 +6,11 @@ export interface TripEvent {
   endDate?: string;
   budget?: number;
   status: 'active' | 'closed';
+  sharedWith?: string[];
+  isShared?: boolean;
+  ownerId?: string;
+  ownerEmail?: string;
+  originalEventId?: string;
   createdAt?: any;
   updatedAt?: any;
 }

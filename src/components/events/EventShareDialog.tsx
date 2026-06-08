@@ -1,0 +1,70 @@
+import { useState } from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { X, UserPlus } from 'lucide-react';
+import { TripEvent } from '@/types/event';
+
+interface Props {
+  event: TripEvent;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onShare: (email: string) => void;
+  onUnshare: (email: string) => void;
+}
+
+export const EventShareDialog = ({ event, open, onOpenChange, onShare, onUnshare }: Props) => {
+  const [email, setEmail] = useState('');
+
+  const handleShare = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email.trim()) return;
+    onShare(email.trim().toLowerCase());
+    setEmail('');
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Share Event — {event.name}</DialogTitle>
+        </DialogHeader>
+        <p className="text-sm text-muted-foreground">
+          Shared members can view this event and its transactions (read-only).
+        </p>
+        <form onSubmit={handleShare} className="flex gap-2">
+          <Input
+            placeholder="Enter email address"
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="flex-1"
+            required
+          />
+          <Button type="submit" size="sm">
+            <UserPlus className="h-4 w-4 mr-1" /> Share
+          </Button>
+        </form>
+        {event.sharedWith && event.sharedWith.length > 0 && (
+          <div className="space-y-2">
+            <Label>Shared with:</Label>
+            {event.sharedWith.map((e) => (
+              <div key={e} className="flex items-center justify-between p-2 rounded-md bg-muted/50 text-sm">
+                <span>{e}</span>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6 text-destructive"
+                  onClick={() => onUnshare(e)}
+                >
+                  <X className="h-3 w-3" />
+                </Button>
+              </div>
+            ))}
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+};
