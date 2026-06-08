@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, DollarSign, X, Calendar, Settings, User, Wallet } from 'lucide-react';
+import { Plus, DollarSign, X, Calendar, Settings, User, MapPin } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -10,6 +10,7 @@ import { format } from 'date-fns';
 import { CategoryManager } from './CategoryManager';
 import { useAuth } from '@/contexts/AuthContext';
 import { PaymentMode } from './PaymentModeManager';
+import { TripEvent } from '@/types/event';
 
 interface ExpenseFormProps {
   onAddTransaction: (transaction: Omit<Transaction, 'id'>) => void;
@@ -18,6 +19,7 @@ interface ExpenseFormProps {
   onUpdateCategory: (oldValue: string, newCategory: { value: string; label: string; icon: string; color: string }) => void;
   onDeleteCategory: (categoryValue: string) => void;
   paymentModes?: PaymentMode[];
+  events?: TripEvent[];
 }
 
 export const ExpenseForm = ({ 
@@ -27,6 +29,7 @@ export const ExpenseForm = ({
   onUpdateCategory,
   onDeleteCategory,
   paymentModes = [],
+  events = [],
 }: ExpenseFormProps) => {
   const { user } = useAuth();
   const [amount, setAmount] = useState('');
@@ -36,6 +39,7 @@ export const ExpenseForm = ({
   const [type, setType] = useState<'expense' | 'income'>('expense');
   const [paidBy, setPaidBy] = useState(user?.email || '');
   const [paymentMode, setPaymentMode] = useState('');
+  const [eventId, setEventId] = useState('');
   const [showCategoryManager, setShowCategoryManager] = useState(false);
   const { toast } = useToast();
 
@@ -63,6 +67,7 @@ export const ExpenseForm = ({
       return;
     }
 
+    const selectedEvent = events.find((e) => e.id === eventId);
     onAddTransaction({
       amount: numAmount,
       category: selectedCategories.join(','),
@@ -71,6 +76,8 @@ export const ExpenseForm = ({
       type,
       paidBy: paidBy.trim(),
       paymentMode: paymentMode || undefined,
+      eventId: selectedEvent?.id,
+      eventName: selectedEvent?.name,
     });
 
     setAmount('');
@@ -79,6 +86,7 @@ export const ExpenseForm = ({
     setDate(format(new Date(), 'yyyy-MM-dd'));
     setPaidBy(user?.email || '');
     setPaymentMode('');
+    setEventId('');
     
     toast({
       title: "Transaction Added",
