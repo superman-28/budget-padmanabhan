@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Calendar, Trash2, Pencil, ChevronDown, Wallet, Receipt } from 'lucide-react';
+import { Calendar, Trash2, Pencil, ChevronDown, Wallet, Receipt, PieChart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { TripEvent } from '@/types/event';
@@ -39,6 +39,22 @@ export const EventCard = ({ event, transactions, categories, onEdit, onDelete, o
   const getCategoryInfo = (categoryValue: string) => categories.find((c) => c.value === categoryValue) || {
     value: categoryValue, label: categoryValue, icon: '💼', color: '#6b7280',
   };
+
+  const categoryBreakdown = useMemo(() => {
+    const map = new Map<string, { amount: number; count: number }>();
+    for (const t of eventTxns) {
+      if (t.type !== 'expense') continue;
+      const cats = t.category.split(',').map((c) => c.trim()).filter(Boolean);
+      const share = cats.length > 0 ? t.amount / cats.length : t.amount;
+      for (const c of cats) {
+        const prev = map.get(c) || { amount: 0, count: 0 };
+        map.set(c, { amount: prev.amount + share, count: prev.count + 1 });
+      }
+    }
+    return Array.from(map.entries())
+      .map(([cat, v]) => ({ cat, ...v }))
+      .sort((a, b) => b.amount - a.amount);
+  }, [eventTxns]);
 
   return (
     <div className="rounded-xl border border-border/60 bg-card overflow-hidden shadow-sm animate-fade-in">
