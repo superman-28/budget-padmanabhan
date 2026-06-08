@@ -11,6 +11,8 @@ import AuthHeader from '@/components/AuthHeader';
 import { useAuth } from '@/contexts/AuthContext';
 import { firestoreService } from '@/services/firestoreService';
 import { userLinkingService } from '@/services/userLinkingService';
+import { eventService } from '@/services/eventService';
+import { TripEvent } from '@/types/event';
 
 export interface Transaction {
   id: string;
