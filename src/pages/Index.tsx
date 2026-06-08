@@ -11,6 +11,8 @@ import AuthHeader from '@/components/AuthHeader';
 import { useAuth } from '@/contexts/AuthContext';
 import { firestoreService } from '@/services/firestoreService';
 import { userLinkingService } from '@/services/userLinkingService';
+import { eventService } from '@/services/eventService';
+import { TripEvent } from '@/types/event';
 
 export interface Transaction {
   id: string;
@@ -21,6 +23,8 @@ export interface Transaction {
   type: 'expense' | 'income';
   paidBy: string;
   paymentMode?: string;
+  eventId?: string;
+  eventName?: string;
 }
 
 interface Category {
@@ -38,6 +42,7 @@ const Index = () => {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [categories, setCategories] = useState<Category[]>(defaultCategories);
   const [paymentModes, setPaymentModes] = useState<PaymentMode[]>([]);
+  const [events, setEvents] = useState<TripEvent[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -66,10 +71,13 @@ const Index = () => {
       (modes) => setPaymentModes(modes)
     );
 
+    const unsubscribeEvents = eventService.subscribeToEvents(user.uid, setEvents);
+
     return () => {
       unsubscribeTransactions();
       unsubscribeCategories();
       unsubscribePaymentModes();
+      unsubscribeEvents();
     };
   }, [user]);
 
@@ -163,6 +171,7 @@ const Index = () => {
               onUpdateCategory={updateCategory}
               onDeleteCategory={deleteCategory}
               paymentModes={paymentModes}
+              events={events}
             />
 
             <PaymentModeManager
