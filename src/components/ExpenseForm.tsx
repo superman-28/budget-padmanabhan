@@ -177,6 +177,32 @@ export const ExpenseForm = ({
             </div>
           </div>
 
+          {/* Event / Trip */}
+          {events.length > 0 && (
+            <div className="space-y-1.5">
+              <Label className="text-xs flex items-center gap-1">
+                <MapPin className="h-3 w-3" /> Link to Event / Trip <span className="text-muted-foreground">(Optional)</span>
+              </Label>
+              <div className="flex flex-wrap gap-2">
+                {events.filter((e) => e.status === 'active').map((ev) => (
+                  <button
+                    key={ev.id}
+                    type="button"
+                    onClick={() => setEventId(eventId === ev.id ? '' : ev.id)}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-sm transition-all ${
+                      eventId === ev.id
+                        ? 'bg-primary text-primary-foreground border-primary shadow-sm'
+                        : 'bg-background hover:bg-accent border-border'
+                    }`}
+                  >
+                    <MapPin className="h-3 w-3" />
+                    <span>{ev.name}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Payment Mode */}
           {paymentModes.length > 0 && (
             <div className="space-y-1.5">
