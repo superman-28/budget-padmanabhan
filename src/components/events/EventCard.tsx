@@ -121,6 +121,38 @@ export const EventCard = ({ event, transactions, categories, onEdit, onDelete, o
             </Button>
           </div>
 
+          {categoryBreakdown.length > 0 && (
+            <div className="space-y-1.5">
+              <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
+                <PieChart className="h-3.5 w-3.5" /> By Category
+              </div>
+              <div className="space-y-1">
+                {categoryBreakdown.map(({ cat, amount, count }) => {
+                  const info = getCategoryInfo(cat);
+                  const pct = totals.expense > 0 ? (amount / totals.expense) * 100 : 0;
+                  return (
+                    <div key={cat} className="p-2 rounded-lg border border-border/50" style={{ borderLeft: `3px solid ${info.color}` }}>
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className="text-base">{info.icon}</span>
+                          <span className="text-sm font-medium truncate">{info.label}</span>
+                          <span className="text-[10px] text-muted-foreground">({count})</span>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <p className="text-sm font-semibold text-destructive">₹{amount.toFixed(0)}</p>
+                          <p className="text-[10px] text-muted-foreground">{pct.toFixed(0)}%</p>
+                        </div>
+                      </div>
+                      <div className="h-1 bg-muted rounded-full overflow-hidden mt-1.5">
+                        <div className="h-full transition-all" style={{ width: `${pct}%`, backgroundColor: info.color }} />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           <div className="space-y-1.5">
             <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
               <Receipt className="h-3.5 w-3.5" /> Transactions
