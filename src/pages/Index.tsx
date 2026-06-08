@@ -171,6 +171,7 @@ const Index = () => {
               onUpdateCategory={updateCategory}
               onDeleteCategory={deleteCategory}
               paymentModes={paymentModes}
+              events={events}
             />
 
             <PaymentModeManager
