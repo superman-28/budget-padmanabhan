@@ -42,6 +42,7 @@ const Index = () => {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [categories, setCategories] = useState<Category[]>(defaultCategories);
   const [paymentModes, setPaymentModes] = useState<PaymentMode[]>([]);
+  const [events, setEvents] = useState<TripEvent[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -70,10 +71,13 @@ const Index = () => {
       (modes) => setPaymentModes(modes)
     );
 
+    const unsubscribeEvents = eventService.subscribeToEvents(user.uid, setEvents);
+
     return () => {
       unsubscribeTransactions();
       unsubscribeCategories();
       unsubscribePaymentModes();
+      unsubscribeEvents();
     };
   }, [user]);
 
