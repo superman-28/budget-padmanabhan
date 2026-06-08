@@ -13,6 +13,7 @@ import { Transaction } from '@/pages/Index';
 import { EventFormDialog } from '@/components/events/EventFormDialog';
 import { EventCard } from '@/components/events/EventCard';
 import { useToast } from '@/hooks/use-toast';
+import { exportEventAsCSV } from '@/utils/eventExport';
 
 interface Category { value: string; label: string; icon: string; color: string; }
 
@@ -21,6 +22,7 @@ const Events = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [events, setEvents] = useState<TripEvent[]>([]);
+  const [sharedEvents, setSharedEvents] = useState<TripEvent[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
@@ -32,7 +34,8 @@ const Events = () => {
     const u1 = eventService.subscribeToEvents(user.uid, (e) => { setEvents(e); setLoading(false); });
     const u2 = firestoreService.subscribeToTransactions(user.uid, setTransactions);
     const u3 = firestoreService.subscribeToCategories(user.uid, setCategories);
-    return () => { u1(); u2(); u3(); };
+    const u4 = eventService.subscribeToSharedEvents(user.uid, setSharedEvents);
+    return () => { u1(); u2(); u3(); u4(); };
   }, [user]);
 
   const activeEvents = useMemo(() => events.filter((e) => e.status === 'active'), [events]);
@@ -73,6 +76,31 @@ const Events = () => {
     } catch (e) { console.error(e); }
   };
 
+  const handleShare = async (event: TripEvent, email: string) => {
+    if (!user) return;
+    try {
+      await eventService.shareEvent(user.uid, user.email!, event, email);
+      toast({ title: 'Event shared', description: `Shared with ${email}` });
+    } catch (e: any) {
+      toast({ title: 'Error', description: e.message || 'Failed to share', variant: 'destructive' });
+    }
+  };
+
+  const handleUnshare = async (event: TripEvent, email: string) => {
+    if (!user) return;
+    try {
+      await eventService.unshareEvent(user.uid, event, email);
+      toast({ title: 'Access removed', description: `${email} can no longer see this event.` });
+    } catch {
+      toast({ title: 'Error', description: 'Failed to remove access.', variant: 'destructive' });
+    }
+  };
+
+  const handleExport = (event: TripEvent, txns: Transaction[]) => {
+    exportEventAsCSV(event, txns);
+    toast({ title: 'Exported', description: 'Event downloaded as CSV.' });
+  };
+
   const startEdit = (e: TripEvent) => { setEditEvent(e); setEditOpen(true); };
 
   if (loading) {
@@ -86,7 +114,7 @@ const Events = () => {
     );
   }
 
-  const renderList = (list: TripEvent[], empty: string) => {
+  const renderList = (list: TripEvent[], empty: string, isShared = false) => {
     if (list.length === 0) return <p className="text-center text-muted-foreground py-8 text-sm">{empty}</p>;
     return list.map((ev) => (
       <EventCard
@@ -94,10 +122,14 @@ const Events = () => {
         event={ev}
         transactions={transactions}
         categories={categories}
-        onEdit={startEdit}
-        onDelete={handleDelete}
-        onToggleStatus={handleToggleStatus}
-        onDeleteTransaction={handleDeleteTransaction}
+        onEdit={isShared ? undefined : startEdit}
+        onDelete={isShared ? undefined : handleDelete}
+        onToggleStatus={isShared ? undefined : handleToggleStatus}
+        onDeleteTransaction={isShared ? undefined : handleDeleteTransaction}
+        onShare={isShared ? undefined : handleShare}
+        onUnshare={isShared ? undefined : handleUnshare}
+        onExportCSV={handleExport}
+        isShared={isShared}
       />
     ));
   };
@@ -122,9 +154,12 @@ const Events = () => {
         </div>
 
         <Tabs defaultValue="active">
-          <TabsList className="w-full grid grid-cols-2">
+          <TabsList className={`w-full grid ${sharedEvents.length > 0 ? 'grid-cols-3' : 'grid-cols-2'}`}>
             <TabsTrigger value="active">Active ({activeEvents.length})</TabsTrigger>
             <TabsTrigger value="closed">Closed ({closedEvents.length})</TabsTrigger>
+            {sharedEvents.length > 0 && (
+              <TabsTrigger value="shared">Shared ({sharedEvents.length})</TabsTrigger>
+            )}
           </TabsList>
           <TabsContent value="active" className="space-y-3 mt-4">
             {renderList(activeEvents, 'No active events. Create one to start tracking.')}
@@ -132,6 +167,11 @@ const Events = () => {
           <TabsContent value="closed" className="space-y-3 mt-4">
             {renderList(closedEvents, 'No closed events.')}
           </TabsContent>
+          {sharedEvents.length > 0 && (
+            <TabsContent value="shared" className="space-y-3 mt-4">
+              {renderList(sharedEvents, 'No shared events.', true)}
+            </TabsContent>
+          )}
         </Tabs>
 
         <EventFormDialog
