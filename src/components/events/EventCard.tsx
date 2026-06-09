@@ -39,7 +39,7 @@ export const EventCard = ({
   const [shareOpen, setShareOpen] = useState(false);
 
   const eventTxns = useMemo(
-    () => transactions.filter((t) => t.eventId === event.id || t.eventId === event.originalEventId),
+    () => transactions.filter((t) => !!t.eventId && (t.eventId === event.id || (event.originalEventId && t.eventId === event.originalEventId))),
     [transactions, event.id, event.originalEventId]
   );
 
