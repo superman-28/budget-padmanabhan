@@ -24,6 +24,7 @@ const Events = () => {
   const [events, setEvents] = useState<TripEvent[]>([]);
   const [sharedEvents, setSharedEvents] = useState<TripEvent[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [sharedTransactions, setSharedTransactions] = useState<Transaction[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [editEvent, setEditEvent] = useState<TripEvent | null>(null);
@@ -35,8 +36,10 @@ const Events = () => {
     const u2 = firestoreService.subscribeToTransactions(user.uid, setTransactions);
     const u3 = firestoreService.subscribeToCategories(user.uid, setCategories);
     const u4 = eventService.subscribeToSharedEvents(user.uid, setSharedEvents);
-    return () => { u1(); u2(); u3(); u4(); };
+    const u5 = eventService.subscribeToSharedEventTransactions(user.uid, setSharedTransactions);
+    return () => { u1(); u2(); u3(); u4(); u5(); };
   }, [user]);
+
 
   const activeEvents = useMemo(() => events.filter((e) => e.status === 'active'), [events]);
   const closedEvents = useMemo(() => events.filter((e) => e.status === 'closed'), [events]);
