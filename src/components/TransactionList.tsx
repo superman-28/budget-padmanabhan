@@ -89,7 +89,7 @@ export const TransactionList = ({
                   {renderCategoryIndicator(transaction.category)}
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium truncate">{transaction.description}</p>
-                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground flex-wrap">
                       <span className="truncate">
                         {transaction.category.split(',').length > 1
                           ? 'Multiple' : getCategoryInfo(transaction.category).label}
@@ -101,6 +101,11 @@ export const TransactionList = ({
                           <span>•</span>
                           <span className="text-primary/70">{transaction.paymentMode}</span>
                         </>
+                      )}
+                      {transaction.eventName && (
+                        <span className="inline-flex items-center gap-0.5 bg-pastel-indigo text-foreground px-1 py-0.5 rounded text-[10px]">
+                          📍{transaction.eventName}
+                        </span>
                       )}
                     </div>
                   </div>
