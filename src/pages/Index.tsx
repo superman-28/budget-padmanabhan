@@ -86,9 +86,11 @@ const Index = () => {
     try {
       const transactionWithPaidBy = { ...transaction, paidBy: transaction.paidBy || user.email! };
       const transactionId = await firestoreService.addTransaction(user.uid, transactionWithPaidBy);
+      const fullTxn = { ...transactionWithPaidBy, id: transactionId } as Transaction;
       await userLinkingService.shareTransactionWithLinkedUsers(
-        user.uid, user.email!, { ...transactionWithPaidBy, id: transactionId }
+        user.uid, user.email!, fullTxn
       );
+      await eventService.syncTransactionForRecipients(user.uid, user.email!, fullTxn);
     } catch (error) {
       console.error('Error adding transaction:', error);
     }
@@ -99,6 +101,7 @@ const Index = () => {
     try {
       await firestoreService.updateTransaction(user.uid, transaction);
       await userLinkingService.updateSharedTransaction(user.uid, user.email!, transaction);
+      await eventService.syncTransactionForRecipients(user.uid, user.email!, transaction);
     } catch (error) {
       console.error('Error updating transaction:', error);
     }
@@ -108,11 +111,13 @@ const Index = () => {
     if (!user) return;
     try {
       await userLinkingService.deleteSharedTransaction(user.uid, id);
+      await eventService.removeTransactionForRecipients(user.uid, id);
       await firestoreService.deleteTransaction(user.uid, id);
     } catch (error) {
       console.error('Error deleting transaction:', error);
     }
   };
+
 
   const addCategory = async (category: Category) => {
     if (!user) return;

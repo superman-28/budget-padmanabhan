@@ -216,8 +216,9 @@ export const EventCard = ({
               </div>
               {eventTxns.length === 0 ? (
                 <p className="text-xs text-muted-foreground py-3 text-center">
-                  {isShared ? 'Transactions are only visible to the event owner.' : 'No transactions yet. Add one from the dashboard and link it to this event.'}
+                  No transactions yet.
                 </p>
+
               ) : (
                 <div className="space-y-1.5 max-h-80 overflow-y-auto">
                   {eventTxns
