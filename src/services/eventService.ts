@@ -129,7 +129,28 @@ export const eventService = {
       sharedWith: [...(event.sharedWith || []), normalizedEmail],
       updatedAt: Timestamp.now(),
     });
+
+    // Backfill existing transactions linked to this event to the recipient
+    try {
+      const txnsRef = collection(db, 'users', userId, 'transactions');
+      const txnQ = query(txnsRef, where('eventId', '==', id));
+      const txnSnap = await getDocs(txnQ);
+      for (const t of txnSnap.docs) {
+        const targetTxnRef = doc(db, 'users', targetUserId, 'shared_event_transactions', t.id);
+        await setDoc(targetTxnRef, stripUndefined({
+          ...t.data(),
+          originalTxnId: t.id,
+          ownerId: userId,
+          ownerEmail: userEmail,
+          eventId: id,
+          syncedAt: Timestamp.now(),
+        }));
+      }
+    } catch (err) {
+      console.error('EventService: backfill shared transactions error', err);
+    }
   },
+
 
   async unshareEvent(userId: string, event: TripEvent, targetEmail: string) {
     const normalizedEmail = targetEmail.trim().toLowerCase();
