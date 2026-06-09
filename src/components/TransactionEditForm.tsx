@@ -196,6 +196,38 @@ export const TransactionEditForm = ({
         />
       </div>
 
+      {/* Event */}
+      {events.length > 0 && (
+        <div className="space-y-2">
+          <Label className="flex items-center gap-1">
+            <MapPin className="h-3.5 w-3.5" /> Event / Trip
+          </Label>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => setEventId('')}
+              className={`px-2 py-1 rounded-md border text-xs transition-colors ${
+                !eventId ? 'bg-primary text-primary-foreground border-primary' : 'bg-background hover:bg-accent'
+              }`}
+            >
+              None
+            </button>
+            {events.map((ev) => (
+              <button
+                key={ev.id}
+                type="button"
+                onClick={() => setEventId(ev.id)}
+                className={`px-2 py-1 rounded-md border text-xs transition-colors ${
+                  eventId === ev.id ? 'bg-primary text-primary-foreground border-primary' : 'bg-background hover:bg-accent'
+                }`}
+              >
+                {ev.name}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="flex gap-2 justify-between">
         <div className="flex gap-2">
           <Button type="submit" size="sm">
