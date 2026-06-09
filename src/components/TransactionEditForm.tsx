@@ -1,16 +1,18 @@
 
 import { useState } from 'react';
-import { Check, X, Calendar, Trash2, User } from 'lucide-react';
+import { Check, X, Calendar, Trash2, User, MapPin } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Transaction } from '@/pages/Index';
+import { TripEvent } from '@/types/event';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 
 interface TransactionEditFormProps {
   transaction: Transaction;
   categories: Array<{ value: string; label: string; icon: string; color: string }>;
+  events?: TripEvent[];
   onSave: (updatedTransaction: Transaction) => void;
   onDelete: (transactionId: string) => void;
   onCancel: () => void;
@@ -19,6 +21,7 @@ interface TransactionEditFormProps {
 export const TransactionEditForm = ({ 
   transaction, 
   categories, 
+  events = [],
   onSave, 
   onDelete,
   onCancel 
@@ -31,6 +34,7 @@ export const TransactionEditForm = ({
   const [date, setDate] = useState(format(new Date(transaction.date), 'yyyy-MM-dd'));
   const [type, setType] = useState<'expense' | 'income'>(transaction.type);
   const [paidBy, setPaidBy] = useState(transaction.paidBy || '');
+  const [eventId, setEventId] = useState<string>(transaction.eventId || '');
   const { toast } = useToast();
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -55,6 +59,7 @@ export const TransactionEditForm = ({
       return;
     }
 
+    const selectedEvent = events.find((ev) => ev.id === eventId);
     const updatedTransaction: Transaction = {
       ...transaction,
       amount: numAmount,
@@ -63,6 +68,8 @@ export const TransactionEditForm = ({
       date: new Date(date).toISOString(),
       type,
       paidBy: paidBy.trim(),
+      eventId: selectedEvent?.id,
+      eventName: selectedEvent?.name,
     };
 
     onSave(updatedTransaction);
