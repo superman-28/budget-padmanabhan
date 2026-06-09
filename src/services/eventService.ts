@@ -2,6 +2,7 @@ import {
   collection,
   doc,
   addDoc,
+  setDoc,
   updateDoc,
   deleteDoc,
   onSnapshot,
@@ -13,6 +14,8 @@ import {
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { TripEvent } from '@/types/event';
+import { Transaction } from '@/pages/Index';
+
 
 function stripUndefined(obj: Record<string, any>): Record<string, any> {
   return Object.fromEntries(Object.entries(obj).filter(([, v]) => v !== undefined));
