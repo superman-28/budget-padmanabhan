@@ -1,9 +1,10 @@
 import { useMemo, useState } from 'react';
-import { Calendar, Edit, User } from 'lucide-react';
+import { Calendar, Edit, User, MapPin } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card';
 import { Transaction } from '@/pages/Index';
+import { TripEvent } from '@/types/event';
 import { CollapsibleCard } from './CollapsibleCard';
 import { TransactionEditForm } from './TransactionEditForm';
 import { CategoryDetailModal } from './CategoryDetailModal';
@@ -13,12 +14,13 @@ interface MonthlyTableProps {
   transactions: Transaction[];
   selectedDate: Date;
   categories: Array<{ value: string; label: string; icon: string; color: string }>;
+  events?: TripEvent[];
   onUpdateTransaction: (transaction: Transaction) => void;
   onDeleteTransaction: (id: string) => void;
 }
 
 export const MonthlyTable = ({ 
-  transactions, selectedDate, categories, onUpdateTransaction, onDeleteTransaction 
+  transactions, selectedDate, categories, events = [], onUpdateTransaction, onDeleteTransaction 
 }: MonthlyTableProps) => {
   const [editingTransaction, setEditingTransaction] = useState<string | null>(null);
   const [categoryDetail, setCategoryDetail] = useState<{
@@ -108,16 +110,21 @@ export const MonthlyTable = ({
                         </Button>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
                       {renderCategoryCell(transaction.category, transaction)}
                       {transaction.paidBy && <span className="text-primary/70">{transaction.paidBy}</span>}
                       {transaction.paymentMode && <span className="bg-accent px-1.5 py-0.5 rounded text-xs">{transaction.paymentMode}</span>}
+                      {transaction.eventName && (
+                        <span className="inline-flex items-center gap-1 bg-pastel-indigo text-foreground px-1.5 py-0.5 rounded text-xs">
+                          <MapPin className="h-3 w-3" />{transaction.eventName}
+                        </span>
+                      )}
                     </div>
                   </div>
                   {editingTransaction === transaction.id && (
                     <div className="mt-1">
                       <TransactionEditForm
-                        transaction={transaction} categories={categories}
+                        transaction={transaction} categories={categories} events={events}
                         onSave={(t) => { onUpdateTransaction(t); setEditingTransaction(null); }}
                         onDelete={(id) => { onDeleteTransaction(id); setEditingTransaction(null); }}
                         onCancel={() => setEditingTransaction(null)}
@@ -148,7 +155,16 @@ export const MonthlyTable = ({
                     <>
                       <TableRow key={transaction.id} style={getRowStyle(transaction.category)} className="text-xs">
                         <TableCell className="py-2">{format(new Date(transaction.date), 'MMM dd')}</TableCell>
-                        <TableCell className="py-2 max-w-[150px] truncate">{transaction.description}</TableCell>
+                        <TableCell className="py-2 max-w-[180px] truncate">
+                          <div className="flex items-center gap-1.5 truncate">
+                            <span className="truncate">{transaction.description}</span>
+                            {transaction.eventName && (
+                              <span className="inline-flex items-center gap-0.5 bg-pastel-indigo text-foreground px-1.5 py-0.5 rounded text-[10px] shrink-0">
+                                <MapPin className="h-2.5 w-2.5" />{transaction.eventName}
+                              </span>
+                            )}
+                          </div>
+                        </TableCell>
                         <TableCell className="py-2">{renderCategoryCell(transaction.category, transaction)}</TableCell>
                         <TableCell className="py-2">
                           <div className="flex items-center gap-1">
@@ -181,7 +197,7 @@ export const MonthlyTable = ({
                         <TableRow key={`edit-${transaction.id}`}>
                           <TableCell colSpan={8} className="p-0">
                             <TransactionEditForm
-                              transaction={transaction} categories={categories}
+                              transaction={transaction} categories={categories} events={events}
                               onSave={(t) => { onUpdateTransaction(t); setEditingTransaction(null); }}
                               onDelete={(id) => { onDeleteTransaction(id); setEditingTransaction(null); }}
                               onCancel={() => setEditingTransaction(null)}

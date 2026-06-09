@@ -1,16 +1,18 @@
 
 import { useState } from 'react';
-import { Check, X, Calendar, Trash2, User } from 'lucide-react';
+import { Check, X, Calendar, Trash2, User, MapPin } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Transaction } from '@/pages/Index';
+import { TripEvent } from '@/types/event';
 import { useToast } from '@/hooks/use-toast';
 import { format } from 'date-fns';
 
 interface TransactionEditFormProps {
   transaction: Transaction;
   categories: Array<{ value: string; label: string; icon: string; color: string }>;
+  events?: TripEvent[];
   onSave: (updatedTransaction: Transaction) => void;
   onDelete: (transactionId: string) => void;
   onCancel: () => void;
@@ -19,6 +21,7 @@ interface TransactionEditFormProps {
 export const TransactionEditForm = ({ 
   transaction, 
   categories, 
+  events = [],
   onSave, 
   onDelete,
   onCancel 
@@ -31,6 +34,7 @@ export const TransactionEditForm = ({
   const [date, setDate] = useState(format(new Date(transaction.date), 'yyyy-MM-dd'));
   const [type, setType] = useState<'expense' | 'income'>(transaction.type);
   const [paidBy, setPaidBy] = useState(transaction.paidBy || '');
+  const [eventId, setEventId] = useState<string>(transaction.eventId || '');
   const { toast } = useToast();
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -55,6 +59,7 @@ export const TransactionEditForm = ({
       return;
     }
 
+    const selectedEvent = events.find((ev) => ev.id === eventId);
     const updatedTransaction: Transaction = {
       ...transaction,
       amount: numAmount,
@@ -63,6 +68,8 @@ export const TransactionEditForm = ({
       date: new Date(date).toISOString(),
       type,
       paidBy: paidBy.trim(),
+      eventId: selectedEvent?.id,
+      eventName: selectedEvent?.name,
     };
 
     onSave(updatedTransaction);
@@ -188,6 +195,38 @@ export const TransactionEditForm = ({
           onChange={(e) => setDescription(e.target.value)}
         />
       </div>
+
+      {/* Event */}
+      {events.length > 0 && (
+        <div className="space-y-2">
+          <Label className="flex items-center gap-1">
+            <MapPin className="h-3.5 w-3.5" /> Event / Trip
+          </Label>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => setEventId('')}
+              className={`px-2 py-1 rounded-md border text-xs transition-colors ${
+                !eventId ? 'bg-primary text-primary-foreground border-primary' : 'bg-background hover:bg-accent'
+              }`}
+            >
+              None
+            </button>
+            {events.map((ev) => (
+              <button
+                key={ev.id}
+                type="button"
+                onClick={() => setEventId(ev.id)}
+                className={`px-2 py-1 rounded-md border text-xs transition-colors ${
+                  eventId === ev.id ? 'bg-primary text-primary-foreground border-primary' : 'bg-background hover:bg-accent'
+                }`}
+              >
+                {ev.name}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="flex gap-2 justify-between">
         <div className="flex gap-2">

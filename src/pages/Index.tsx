@@ -187,6 +187,7 @@ const Index = () => {
               transactions={transactions} 
               selectedDate={selectedDate}
               categories={categories}
+              events={events}
               onUpdateTransaction={updateTransaction}
               onDeleteTransaction={deleteTransaction}
             />
