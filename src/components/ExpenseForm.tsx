@@ -68,17 +68,20 @@ export const ExpenseForm = ({
     }
 
     const selectedEvent = events.find((e) => e.id === eventId);
-    onAddTransaction({
+    const newTxn: Omit<Transaction, 'id'> = {
       amount: numAmount,
       category: selectedCategories.join(','),
       description: description.trim() || 'No description',
       date: selectedDateObj.toISOString(),
       type,
       paidBy: paidBy.trim(),
-      paymentMode: paymentMode || undefined,
-      eventId: selectedEvent?.id,
-      eventName: selectedEvent?.name,
-    });
+    };
+    if (paymentMode) newTxn.paymentMode = paymentMode;
+    if (selectedEvent) {
+      newTxn.eventId = selectedEvent.id;
+      newTxn.eventName = selectedEvent.name;
+    }
+    onAddTransaction(newTxn);
 
     setAmount('');
     setSelectedCategories([]);
