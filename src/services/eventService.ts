@@ -167,6 +167,13 @@ export const eventService = {
       try {
         await deleteDoc(doc(db, 'users', data.linkedUserId, 'shared_events', data.sharedEventDocId));
       } catch {}
+      // Remove mirrored transactions for this event from this recipient
+      try {
+        const mirrorRef = collection(db, 'users', data.linkedUserId, 'shared_event_transactions');
+        const mq = query(mirrorRef, where('eventId', '==', event.id), where('ownerId', '==', userId));
+        const ms = await getDocs(mq);
+        for (const m of ms.docs) await deleteDoc(m.ref);
+      } catch {}
       await deleteDoc(linkDoc.ref);
     }
     const eventRef = doc(db, 'users', userId, 'events', event.id);
@@ -205,10 +212,97 @@ export const eventService = {
         try {
           await deleteDoc(doc(db, 'users', data.linkedUserId, 'shared_events', data.sharedEventDocId));
         } catch {}
+        try {
+          const mirrorRef = collection(db, 'users', data.linkedUserId, 'shared_event_transactions');
+          const mq = query(mirrorRef, where('eventId', '==', eventId), where('ownerId', '==', userId));
+          const ms = await getDocs(mq);
+          for (const m of ms.docs) await deleteDoc(m.ref);
+        } catch {}
         await deleteDoc(linkDoc.ref);
       }
     } catch (e) {
       console.error('EventService: removeAllSharedCopies error', e);
     }
   },
+
+  // ─── Transaction mirroring for shared events ─────────────
+
+  subscribeToSharedEventTransactions(userId: string, callback: (txns: Transaction[]) => void) {
+    const ref = collection(db, 'users', userId, 'shared_event_transactions');
+    return onSnapshot(
+      ref,
+      (snapshot) => {
+        const txns: Transaction[] = [];
+        snapshot.forEach((d) => {
+          const data = d.data() as any;
+          txns.push({ id: d.id, ...data } as Transaction);
+        });
+        callback(txns);
+      },
+      (err) => {
+        console.error('EventService: shared txn subscription error', err);
+        callback([]);
+      }
+    );
+  },
+
+  async syncTransactionForRecipients(
+    ownerId: string,
+    ownerEmail: string,
+    txn: Transaction
+  ) {
+    try {
+      const linksRef = collection(db, 'sharedEventLinks');
+      const q = query(linksRef, where('ownerId', '==', ownerId));
+      const snapshot = await getDocs(q);
+      for (const linkDoc of snapshot.docs) {
+        const data = linkDoc.data();
+        const mirrorDocRef = doc(
+          db,
+          'users',
+          data.linkedUserId,
+          'shared_event_transactions',
+          txn.id
+        );
+        if (txn.eventId && txn.eventId === data.originalEventId) {
+          await setDoc(
+            mirrorDocRef,
+            stripUndefined({
+              ...txn,
+              originalTxnId: txn.id,
+              ownerId,
+              ownerEmail,
+              syncedAt: Timestamp.now(),
+            })
+          );
+        } else {
+          // Transaction no longer linked to this shared event — remove mirror if present
+          try {
+            await deleteDoc(mirrorDocRef);
+          } catch {}
+        }
+      }
+    } catch (e) {
+      console.error('EventService: syncTransactionForRecipients error', e);
+    }
+  },
+
+  async removeTransactionForRecipients(ownerId: string, txnId: string) {
+    try {
+      const linksRef = collection(db, 'sharedEventLinks');
+      const q = query(linksRef, where('ownerId', '==', ownerId));
+      const snapshot = await getDocs(q);
+      for (const linkDoc of snapshot.docs) {
+        const data = linkDoc.data();
+        try {
+          await deleteDoc(
+            doc(db, 'users', data.linkedUserId, 'shared_event_transactions', txnId)
+          );
+        } catch {}
+      }
+    } catch (e) {
+      console.error('EventService: removeTransactionForRecipients error', e);
+    }
+  },
 };
+
