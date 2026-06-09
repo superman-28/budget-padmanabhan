@@ -123,7 +123,7 @@ const Events = () => {
       <EventCard
         key={ev.id}
         event={ev}
-        transactions={transactions}
+        transactions={isShared ? sharedTransactions : transactions}
         categories={categories}
         onEdit={isShared ? undefined : startEdit}
         onDelete={isShared ? undefined : handleDelete}
