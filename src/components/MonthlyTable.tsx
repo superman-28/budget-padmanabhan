@@ -1,9 +1,10 @@
 import { useMemo, useState } from 'react';
-import { Calendar, Edit, User } from 'lucide-react';
+import { Calendar, Edit, User, MapPin } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card';
 import { Transaction } from '@/pages/Index';
+import { TripEvent } from '@/types/event';
 import { CollapsibleCard } from './CollapsibleCard';
 import { TransactionEditForm } from './TransactionEditForm';
 import { CategoryDetailModal } from './CategoryDetailModal';
@@ -13,12 +14,13 @@ interface MonthlyTableProps {
   transactions: Transaction[];
   selectedDate: Date;
   categories: Array<{ value: string; label: string; icon: string; color: string }>;
+  events?: TripEvent[];
   onUpdateTransaction: (transaction: Transaction) => void;
   onDeleteTransaction: (id: string) => void;
 }
 
 export const MonthlyTable = ({ 
-  transactions, selectedDate, categories, onUpdateTransaction, onDeleteTransaction 
+  transactions, selectedDate, categories, events = [], onUpdateTransaction, onDeleteTransaction 
 }: MonthlyTableProps) => {
   const [editingTransaction, setEditingTransaction] = useState<string | null>(null);
   const [categoryDetail, setCategoryDetail] = useState<{
