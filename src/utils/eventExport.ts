@@ -2,14 +2,16 @@ import { format } from 'date-fns';
 import { TripEvent } from '@/types/event';
 import { Transaction } from '@/pages/Index';
 
-function csvEscape(v: any): string {
+function csvEscape(v: unknown): string {
   const s = v === undefined || v === null ? '' : String(v);
   if (/[",\n]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
   return s;
 }
 
 export function exportEventAsCSV(event: TripEvent, transactions: Transaction[]) {
-  const eventTxns = transactions.filter((t) => t.eventId === event.id);
+  const eventTxns = transactions.filter((t) =>
+    t.eventId === event.id || (event.originalEventId && t.eventId === event.originalEventId)
+  );
   const expense = eventTxns.filter((t) => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
   const income = eventTxns.filter((t) => t.type === 'income').reduce((s, t) => s + t.amount, 0);
 
@@ -40,7 +42,7 @@ export function exportEventAsCSV(event: TripEvent, transactions: Transaction[]) 
           csvEscape(t.category || ''),
           t.amount.toFixed(2),
           csvEscape(t.paymentMode || ''),
-          csvEscape((t as any).paidBy || ''),
+          csvEscape(t.paidBy || ''),
         ].join(',')
       );
     });

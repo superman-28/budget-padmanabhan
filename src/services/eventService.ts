@@ -12,14 +12,32 @@ import {
   getDocs,
   Timestamp,
 } from 'firebase/firestore';
+import type { DocumentReference } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { TripEvent } from '@/types/event';
 import { Transaction } from '@/pages/Index';
 
 
-function stripUndefined(obj: Record<string, any>): Record<string, any> {
+function stripUndefined(obj: Record<string, unknown>): Record<string, unknown> {
   return Object.fromEntries(Object.entries(obj).filter(([, v]) => v !== undefined));
 }
+
+function mirrorTransaction(txn: Transaction, ownerId: string, ownerEmail: string) {
+  return stripUndefined({
+    ...txn,
+    originalTxnId: txn.id,
+    ownerId,
+    ownerEmail,
+    readOnly: true,
+    syncedAt: Timestamp.now(),
+  });
+}
+
+type SharedEventLinkData = {
+  originalEventId: string;
+  sharedEventDocId: string;
+  linkedUserId: string;
+};
 
 export const eventService = {
   subscribeToEvents(userId: string, callback: (events: TripEvent[]) => void) {
@@ -88,9 +106,6 @@ export const eventService = {
     if (normalizedEmail === userEmail.toLowerCase()) {
       throw new Error('You cannot share an event with yourself');
     }
-    if (event.sharedWith?.includes(normalizedEmail)) {
-      throw new Error('Event is already shared with this user');
-    }
 
     const usersRef = collection(db, 'users');
     let q = query(usersRef, where('email', '==', normalizedEmail));
@@ -105,28 +120,52 @@ export const eventService = {
 
     const targetUserId = snapshot.docs[0].id;
     const { id, ...eventData } = event;
-    const sharedRef = collection(db, 'users', targetUserId, 'shared_events');
-    const sharedDoc = await addDoc(sharedRef, stripUndefined({
-      ...eventData,
-      isShared: true,
-      ownerId: userId,
-      ownerEmail: userEmail,
-      originalEventId: id,
-      createdAt: Timestamp.now(),
-    }));
+    const linksRef = collection(db, 'sharedEventLinks');
+    const existingLinkQ = query(
+      linksRef,
+      where('originalEventId', '==', id),
+      where('ownerId', '==', userId),
+      where('linkedUserId', '==', targetUserId)
+    );
+    const existingLinkSnap = await getDocs(existingLinkQ);
+    let sharedDocRef: DocumentReference;
 
-    await addDoc(collection(db, 'sharedEventLinks'), {
-      originalEventId: id,
-      sharedEventDocId: sharedDoc.id,
-      ownerId: userId,
-      linkedUserId: targetUserId,
-      linkedEmail: normalizedEmail,
-      createdAt: Timestamp.now(),
-    });
+    if (existingLinkSnap.empty) {
+      const sharedRef = collection(db, 'users', targetUserId, 'shared_events');
+      const sharedDoc = await addDoc(sharedRef, stripUndefined({
+        ...eventData,
+        isShared: true,
+        ownerId: userId,
+        ownerEmail: userEmail,
+        originalEventId: id,
+        createdAt: Timestamp.now(),
+      }));
+      sharedDocRef = sharedDoc;
+
+      await addDoc(linksRef, {
+        originalEventId: id,
+        sharedEventDocId: sharedDoc.id,
+        ownerId: userId,
+        linkedUserId: targetUserId,
+        linkedEmail: normalizedEmail,
+        createdAt: Timestamp.now(),
+      });
+    } else {
+      const existingLink = existingLinkSnap.docs[0].data() as SharedEventLinkData;
+      sharedDocRef = doc(db, 'users', targetUserId, 'shared_events', existingLink.sharedEventDocId);
+      await setDoc(sharedDocRef, stripUndefined({
+        ...eventData,
+        isShared: true,
+        ownerId: userId,
+        ownerEmail: userEmail,
+        originalEventId: id,
+        updatedAt: Timestamp.now(),
+      }), { merge: true });
+    }
 
     const eventRef = doc(db, 'users', userId, 'events', id);
     await updateDoc(eventRef, {
-      sharedWith: [...(event.sharedWith || []), normalizedEmail],
+      sharedWith: Array.from(new Set([...(event.sharedWith || []), normalizedEmail])),
       updatedAt: Timestamp.now(),
     });
 
@@ -135,17 +174,14 @@ export const eventService = {
       const txnsRef = collection(db, 'users', userId, 'transactions');
       const txnQ = query(txnsRef, where('eventId', '==', id));
       const txnSnap = await getDocs(txnQ);
+      const mirroredTxns: Transaction[] = [];
       for (const t of txnSnap.docs) {
+        const txn = { id: t.id, ...t.data() } as Transaction;
+        mirroredTxns.push(txn);
         const targetTxnRef = doc(db, 'users', targetUserId, 'shared_event_transactions', t.id);
-        await setDoc(targetTxnRef, stripUndefined({
-          ...t.data(),
-          originalTxnId: t.id,
-          ownerId: userId,
-          ownerEmail: userEmail,
-          eventId: id,
-          syncedAt: Timestamp.now(),
-        }));
+        await setDoc(targetTxnRef, mirrorTransaction(txn, userId, userEmail));
       }
+      await updateDoc(sharedDocRef, { transactions: mirroredTxns.map((txn) => mirrorTransaction(txn, userId, userEmail)) });
     } catch (err) {
       console.error('EventService: backfill shared transactions error', err);
     }
@@ -166,14 +202,18 @@ export const eventService = {
       const data = linkDoc.data();
       try {
         await deleteDoc(doc(db, 'users', data.linkedUserId, 'shared_events', data.sharedEventDocId));
-      } catch {}
+      } catch (err) {
+        console.error('EventService: remove shared event copy error', err);
+      }
       // Remove mirrored transactions for this event from this recipient
       try {
         const mirrorRef = collection(db, 'users', data.linkedUserId, 'shared_event_transactions');
         const mq = query(mirrorRef, where('eventId', '==', event.id), where('ownerId', '==', userId));
         const ms = await getDocs(mq);
         for (const m of ms.docs) await deleteDoc(m.ref);
-      } catch {}
+      } catch (err) {
+        console.error('EventService: remove shared event transaction mirrors error', err);
+      }
       await deleteDoc(linkDoc.ref);
     }
     const eventRef = doc(db, 'users', userId, 'events', event.id);
@@ -183,13 +223,13 @@ export const eventService = {
     });
   },
 
-  async syncSharedCopies(userId: string, eventId: string, updateData: any) {
+  async syncSharedCopies(userId: string, eventId: string, updateData: Record<string, unknown>) {
     try {
       const linksRef = collection(db, 'sharedEventLinks');
       const q = query(linksRef, where('originalEventId', '==', eventId), where('ownerId', '==', userId));
       const snapshot = await getDocs(q);
       for (const linkDoc of snapshot.docs) {
-        const data = linkDoc.data();
+        const data = linkDoc.data() as SharedEventLinkData;
         try {
           const sharedRef = doc(db, 'users', data.linkedUserId, 'shared_events', data.sharedEventDocId);
           await updateDoc(sharedRef, { ...updateData, updatedAt: Timestamp.now() });
@@ -208,16 +248,20 @@ export const eventService = {
       const q = query(linksRef, where('originalEventId', '==', eventId), where('ownerId', '==', userId));
       const snapshot = await getDocs(q);
       for (const linkDoc of snapshot.docs) {
-        const data = linkDoc.data();
+        const data = linkDoc.data() as SharedEventLinkData;
         try {
           await deleteDoc(doc(db, 'users', data.linkedUserId, 'shared_events', data.sharedEventDocId));
-        } catch {}
+        } catch (err) {
+          console.error('EventService: remove shared event copy error', err);
+        }
         try {
           const mirrorRef = collection(db, 'users', data.linkedUserId, 'shared_event_transactions');
           const mq = query(mirrorRef, where('eventId', '==', eventId), where('ownerId', '==', userId));
           const ms = await getDocs(mq);
           for (const m of ms.docs) await deleteDoc(m.ref);
-        } catch {}
+        } catch (err) {
+          console.error('EventService: remove shared event transaction mirrors error', err);
+        }
         await deleteDoc(linkDoc.ref);
       }
     } catch (e) {
@@ -234,7 +278,7 @@ export const eventService = {
       (snapshot) => {
         const txns: Transaction[] = [];
         snapshot.forEach((d) => {
-          const data = d.data() as any;
+          const data = d.data();
           txns.push({ id: d.id, ...data } as Transaction);
         });
         callback(txns);
@@ -256,7 +300,8 @@ export const eventService = {
       const q = query(linksRef, where('ownerId', '==', ownerId));
       const snapshot = await getDocs(q);
       for (const linkDoc of snapshot.docs) {
-        const data = linkDoc.data();
+        const data = linkDoc.data() as SharedEventLinkData;
+        const sharedEventRef = doc(db, 'users', data.linkedUserId, 'shared_events', data.sharedEventDocId);
         const mirrorDocRef = doc(
           db,
           'users',
@@ -265,25 +310,71 @@ export const eventService = {
           txn.id
         );
         if (txn.eventId && txn.eventId === data.originalEventId) {
-          await setDoc(
-            mirrorDocRef,
-            stripUndefined({
-              ...txn,
-              originalTxnId: txn.id,
-              ownerId,
-              ownerEmail,
-              syncedAt: Timestamp.now(),
-            })
-          );
+          await setDoc(mirrorDocRef, mirrorTransaction(txn, ownerId, ownerEmail));
         } else {
           // Transaction no longer linked to this shared event — remove mirror if present
           try {
             await deleteDoc(mirrorDocRef);
-          } catch {}
+          } catch (err) {
+            console.error('EventService: remove unlinked shared transaction mirror error', err);
+          }
         }
+        await this.refreshSharedEventTransactionSnapshot(ownerId, ownerEmail, data.originalEventId, sharedEventRef);
       }
     } catch (e) {
       console.error('EventService: syncTransactionForRecipients error', e);
+    }
+  },
+
+  async refreshSharedEventTransactionSnapshot(
+    ownerId: string,
+    ownerEmail: string,
+    eventId: string,
+    sharedEventRef: DocumentReference
+  ) {
+    try {
+      const txnsRef = collection(db, 'users', ownerId, 'transactions');
+      const txnQ = query(txnsRef, where('eventId', '==', eventId));
+      const txnSnap = await getDocs(txnQ);
+      const transactions = txnSnap.docs.map((t) => mirrorTransaction({ id: t.id, ...t.data() } as Transaction, ownerId, ownerEmail));
+      await updateDoc(sharedEventRef, { transactions, syncedAt: Timestamp.now() });
+    } catch (e) {
+      console.error('EventService: refresh shared event transactions error', e);
+    }
+  },
+
+  async syncEventTransactionsForRecipients(ownerId: string, ownerEmail: string, eventId: string) {
+    try {
+      const txnsRef = collection(db, 'users', ownerId, 'transactions');
+      const txnQ = query(txnsRef, where('eventId', '==', eventId));
+      const txnSnap = await getDocs(txnQ);
+      const transactions = txnSnap.docs.map((t) => ({ id: t.id, ...t.data() } as Transaction));
+      const txnIds = new Set(transactions.map((txn) => txn.id));
+
+      const linksRef = collection(db, 'sharedEventLinks');
+      const linkQ = query(linksRef, where('originalEventId', '==', eventId), where('ownerId', '==', ownerId));
+      const linkSnap = await getDocs(linkQ);
+
+      for (const linkDoc of linkSnap.docs) {
+        const link = linkDoc.data() as SharedEventLinkData;
+        const sharedEventRef = doc(db, 'users', link.linkedUserId, 'shared_events', link.sharedEventDocId);
+        await updateDoc(sharedEventRef, {
+          transactions: transactions.map((txn) => mirrorTransaction(txn, ownerId, ownerEmail)),
+          syncedAt: Timestamp.now(),
+        });
+
+        const mirrorRef = collection(db, 'users', link.linkedUserId, 'shared_event_transactions');
+        const mirrorQ = query(mirrorRef, where('eventId', '==', eventId), where('ownerId', '==', ownerId));
+        const mirrorSnap = await getDocs(mirrorQ);
+        for (const mirror of mirrorSnap.docs) {
+          if (!txnIds.has(mirror.id)) await deleteDoc(mirror.ref);
+        }
+        for (const txn of transactions) {
+          await setDoc(doc(db, 'users', link.linkedUserId, 'shared_event_transactions', txn.id), mirrorTransaction(txn, ownerId, ownerEmail));
+        }
+      }
+    } catch (e) {
+      console.error('EventService: syncEventTransactionsForRecipients error', e);
     }
   },
 
@@ -293,12 +384,14 @@ export const eventService = {
       const q = query(linksRef, where('ownerId', '==', ownerId));
       const snapshot = await getDocs(q);
       for (const linkDoc of snapshot.docs) {
-        const data = linkDoc.data();
+        const data = linkDoc.data() as SharedEventLinkData;
         try {
           await deleteDoc(
             doc(db, 'users', data.linkedUserId, 'shared_event_transactions', txnId)
           );
-        } catch {}
+        } catch (err) {
+          console.error('EventService: remove shared transaction mirror error', err);
+        }
       }
     } catch (e) {
       console.error('EventService: removeTransactionForRecipients error', e);

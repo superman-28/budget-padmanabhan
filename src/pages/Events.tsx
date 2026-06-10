@@ -40,6 +40,13 @@ const Events = () => {
     return () => { u1(); u2(); u3(); u4(); u5(); };
   }, [user]);
 
+  useEffect(() => {
+    if (!user?.email) return;
+    events
+      .filter((e) => (e.sharedWith || []).length > 0)
+      .forEach((e) => eventService.syncEventTransactionsForRecipients(user.uid, user.email!, e.id));
+  }, [user, events, transactions]);
+
 
   const activeEvents = useMemo(() => events.filter((e) => e.status === 'active'), [events]);
   const closedEvents = useMemo(() => events.filter((e) => e.status === 'closed'), [events]);
@@ -47,7 +54,7 @@ const Events = () => {
   const handleAdd = async (data: Omit<TripEvent, 'id' | 'status' | 'createdAt'>) => {
     if (!user) return;
     try { await eventService.addEvent(user.uid, data); toast({ title: 'Event created' }); }
-    catch (e: any) { toast({ title: 'Error', description: e.message, variant: 'destructive' }); }
+    catch (e) { toast({ title: 'Error', description: e instanceof Error ? e.message : 'Failed to create event', variant: 'destructive' }); }
   };
 
   const handleEdit = async (data: Omit<TripEvent, 'id' | 'status' | 'createdAt'>) => {
@@ -56,14 +63,14 @@ const Events = () => {
       await eventService.updateEvent(user.uid, { ...editEvent, ...data });
       toast({ title: 'Event updated' });
       setEditEvent(null); setEditOpen(false);
-    } catch (e: any) { toast({ title: 'Error', description: e.message, variant: 'destructive' }); }
+    } catch (e) { toast({ title: 'Error', description: e instanceof Error ? e.message : 'Failed to update event', variant: 'destructive' }); }
   };
 
   const handleDelete = async (id: string) => {
     if (!user) return;
     if (!confirm('Delete this event? Transactions remain but get unlinked.')) return;
     try { await eventService.deleteEvent(user.uid, id); toast({ title: 'Event deleted' }); }
-    catch (e: any) { toast({ title: 'Error', description: e.message, variant: 'destructive' }); }
+    catch (e) { toast({ title: 'Error', description: e instanceof Error ? e.message : 'Failed to delete event', variant: 'destructive' }); }
   };
 
   const handleToggleStatus = async (e: TripEvent) => {
@@ -84,8 +91,8 @@ const Events = () => {
     try {
       await eventService.shareEvent(user.uid, user.email!, event, email);
       toast({ title: 'Event shared', description: `Shared with ${email}` });
-    } catch (e: any) {
-      toast({ title: 'Error', description: e.message || 'Failed to share', variant: 'destructive' });
+    } catch (e) {
+      toast({ title: 'Error', description: e instanceof Error ? e.message : 'Failed to share', variant: 'destructive' });
     }
   };
 
