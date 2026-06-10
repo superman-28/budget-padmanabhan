@@ -2,7 +2,7 @@ import { format } from 'date-fns';
 import { TripEvent } from '@/types/event';
 import { Transaction } from '@/pages/Index';
 
-function csvEscape(v: any): string {
+function csvEscape(v: unknown): string {
   const s = v === undefined || v === null ? '' : String(v);
   if (/[",\n]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
   return s;
@@ -42,7 +42,7 @@ export function exportEventAsCSV(event: TripEvent, transactions: Transaction[]) 
           csvEscape(t.category || ''),
           t.amount.toFixed(2),
           csvEscape(t.paymentMode || ''),
-          csvEscape((t as any).paidBy || ''),
+          csvEscape(t.paidBy || ''),
         ].join(',')
       );
     });

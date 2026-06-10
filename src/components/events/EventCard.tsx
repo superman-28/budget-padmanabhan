@@ -22,6 +22,8 @@ interface Props {
   isShared?: boolean;
 }
 
+type EventWithTransactions = TripEvent & { transactions?: Transaction[] };
+
 export const EventCard = ({
   event,
   transactions,
@@ -40,7 +42,9 @@ export const EventCard = ({
 
   const sourceTransactions = useMemo(() => {
     if (!isShared) return transactions;
-    const embedded = Array.isArray((event as any).transactions) ? ((event as any).transactions as Transaction[]) : [];
+    const embedded = Array.isArray((event as EventWithTransactions).transactions)
+      ? (event as EventWithTransactions).transactions || []
+      : [];
     const byId = new Map<string, Transaction>();
     [...embedded, ...transactions].forEach((txn) => byId.set(txn.id, txn));
     return Array.from(byId.values());
