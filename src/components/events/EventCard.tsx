@@ -38,9 +38,13 @@ export const EventCard = ({
   const [open, setOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
 
-  const sourceTransactions = isShared && transactions.length === 0 && Array.isArray((event as any).transactions)
-    ? ((event as any).transactions as Transaction[])
-    : transactions;
+  const sourceTransactions = useMemo(() => {
+    if (!isShared) return transactions;
+    const embedded = Array.isArray((event as any).transactions) ? ((event as any).transactions as Transaction[]) : [];
+    const byId = new Map<string, Transaction>();
+    [...embedded, ...transactions].forEach((txn) => byId.set(txn.id, txn));
+    return Array.from(byId.values());
+  }, [isShared, transactions, event]);
 
   const eventTxns = useMemo(
     () => sourceTransactions.filter((t) => !!t.eventId && (t.eventId === event.id || (event.originalEventId && t.eventId === event.originalEventId))),
