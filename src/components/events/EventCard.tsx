@@ -38,9 +38,13 @@ export const EventCard = ({
   const [open, setOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
 
+  const sourceTransactions = isShared && transactions.length === 0 && Array.isArray((event as any).transactions)
+    ? ((event as any).transactions as Transaction[])
+    : transactions;
+
   const eventTxns = useMemo(
-    () => transactions.filter((t) => !!t.eventId && (t.eventId === event.id || (event.originalEventId && t.eventId === event.originalEventId))),
-    [transactions, event.id, event.originalEventId]
+    () => sourceTransactions.filter((t) => !!t.eventId && (t.eventId === event.id || (event.originalEventId && t.eventId === event.originalEventId))),
+    [sourceTransactions, event.id, event.originalEventId]
   );
 
   const totals = useMemo(() => {

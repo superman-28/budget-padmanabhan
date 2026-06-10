@@ -9,7 +9,9 @@ function csvEscape(v: any): string {
 }
 
 export function exportEventAsCSV(event: TripEvent, transactions: Transaction[]) {
-  const eventTxns = transactions.filter((t) => t.eventId === event.id);
+  const eventTxns = transactions.filter((t) =>
+    t.eventId === event.id || (event.originalEventId && t.eventId === event.originalEventId)
+  );
   const expense = eventTxns.filter((t) => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
   const income = eventTxns.filter((t) => t.type === 'income').reduce((s, t) => s + t.amount, 0);
 
