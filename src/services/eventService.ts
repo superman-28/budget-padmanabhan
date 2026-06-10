@@ -99,9 +99,6 @@ export const eventService = {
     if (normalizedEmail === userEmail.toLowerCase()) {
       throw new Error('You cannot share an event with yourself');
     }
-    if (event.sharedWith?.includes(normalizedEmail)) {
-      throw new Error('Event is already shared with this user');
-    }
 
     const usersRef = collection(db, 'users');
     let q = query(usersRef, where('email', '==', normalizedEmail));
@@ -116,28 +113,52 @@ export const eventService = {
 
     const targetUserId = snapshot.docs[0].id;
     const { id, ...eventData } = event;
-    const sharedRef = collection(db, 'users', targetUserId, 'shared_events');
-    const sharedDoc = await addDoc(sharedRef, stripUndefined({
-      ...eventData,
-      isShared: true,
-      ownerId: userId,
-      ownerEmail: userEmail,
-      originalEventId: id,
-      createdAt: Timestamp.now(),
-    }));
+    const linksRef = collection(db, 'sharedEventLinks');
+    const existingLinkQ = query(
+      linksRef,
+      where('originalEventId', '==', id),
+      where('ownerId', '==', userId),
+      where('linkedUserId', '==', targetUserId)
+    );
+    const existingLinkSnap = await getDocs(existingLinkQ);
+    let sharedDocRef;
 
-    await addDoc(collection(db, 'sharedEventLinks'), {
-      originalEventId: id,
-      sharedEventDocId: sharedDoc.id,
-      ownerId: userId,
-      linkedUserId: targetUserId,
-      linkedEmail: normalizedEmail,
-      createdAt: Timestamp.now(),
-    });
+    if (existingLinkSnap.empty) {
+      const sharedRef = collection(db, 'users', targetUserId, 'shared_events');
+      const sharedDoc = await addDoc(sharedRef, stripUndefined({
+        ...eventData,
+        isShared: true,
+        ownerId: userId,
+        ownerEmail: userEmail,
+        originalEventId: id,
+        createdAt: Timestamp.now(),
+      }));
+      sharedDocRef = sharedDoc;
+
+      await addDoc(linksRef, {
+        originalEventId: id,
+        sharedEventDocId: sharedDoc.id,
+        ownerId: userId,
+        linkedUserId: targetUserId,
+        linkedEmail: normalizedEmail,
+        createdAt: Timestamp.now(),
+      });
+    } else {
+      const existingLink = existingLinkSnap.docs[0].data();
+      sharedDocRef = doc(db, 'users', targetUserId, 'shared_events', existingLink.sharedEventDocId);
+      await setDoc(sharedDocRef, stripUndefined({
+        ...eventData,
+        isShared: true,
+        ownerId: userId,
+        ownerEmail: userEmail,
+        originalEventId: id,
+        updatedAt: Timestamp.now(),
+      }), { merge: true });
+    }
 
     const eventRef = doc(db, 'users', userId, 'events', id);
     await updateDoc(eventRef, {
-      sharedWith: [...(event.sharedWith || []), normalizedEmail],
+      sharedWith: Array.from(new Set([...(event.sharedWith || []), normalizedEmail])),
       updatedAt: Timestamp.now(),
     });
 
@@ -153,7 +174,7 @@ export const eventService = {
         const targetTxnRef = doc(db, 'users', targetUserId, 'shared_event_transactions', t.id);
         await setDoc(targetTxnRef, mirrorTransaction(txn, userId, userEmail));
       }
-      await updateDoc(sharedDoc, { transactions: mirroredTxns.map((txn) => mirrorTransaction(txn, userId, userEmail)) });
+      await updateDoc(sharedDocRef, { transactions: mirroredTxns.map((txn) => mirrorTransaction(txn, userId, userEmail)) });
     } catch (err) {
       console.error('EventService: backfill shared transactions error', err);
     }
