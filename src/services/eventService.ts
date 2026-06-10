@@ -202,14 +202,18 @@ export const eventService = {
       const data = linkDoc.data();
       try {
         await deleteDoc(doc(db, 'users', data.linkedUserId, 'shared_events', data.sharedEventDocId));
-      } catch {}
+      } catch (err) {
+        console.error('EventService: remove shared event copy error', err);
+      }
       // Remove mirrored transactions for this event from this recipient
       try {
         const mirrorRef = collection(db, 'users', data.linkedUserId, 'shared_event_transactions');
         const mq = query(mirrorRef, where('eventId', '==', event.id), where('ownerId', '==', userId));
         const ms = await getDocs(mq);
         for (const m of ms.docs) await deleteDoc(m.ref);
-      } catch {}
+      } catch (err) {
+        console.error('EventService: remove shared event transaction mirrors error', err);
+      }
       await deleteDoc(linkDoc.ref);
     }
     const eventRef = doc(db, 'users', userId, 'events', event.id);
@@ -219,13 +223,13 @@ export const eventService = {
     });
   },
 
-  async syncSharedCopies(userId: string, eventId: string, updateData: any) {
+  async syncSharedCopies(userId: string, eventId: string, updateData: Record<string, unknown>) {
     try {
       const linksRef = collection(db, 'sharedEventLinks');
       const q = query(linksRef, where('originalEventId', '==', eventId), where('ownerId', '==', userId));
       const snapshot = await getDocs(q);
       for (const linkDoc of snapshot.docs) {
-        const data = linkDoc.data();
+        const data = linkDoc.data() as SharedEventLinkData;
         try {
           const sharedRef = doc(db, 'users', data.linkedUserId, 'shared_events', data.sharedEventDocId);
           await updateDoc(sharedRef, { ...updateData, updatedAt: Timestamp.now() });
@@ -244,16 +248,20 @@ export const eventService = {
       const q = query(linksRef, where('originalEventId', '==', eventId), where('ownerId', '==', userId));
       const snapshot = await getDocs(q);
       for (const linkDoc of snapshot.docs) {
-        const data = linkDoc.data();
+        const data = linkDoc.data() as SharedEventLinkData;
         try {
           await deleteDoc(doc(db, 'users', data.linkedUserId, 'shared_events', data.sharedEventDocId));
-        } catch {}
+        } catch (err) {
+          console.error('EventService: remove shared event copy error', err);
+        }
         try {
           const mirrorRef = collection(db, 'users', data.linkedUserId, 'shared_event_transactions');
           const mq = query(mirrorRef, where('eventId', '==', eventId), where('ownerId', '==', userId));
           const ms = await getDocs(mq);
           for (const m of ms.docs) await deleteDoc(m.ref);
-        } catch {}
+        } catch (err) {
+          console.error('EventService: remove shared event transaction mirrors error', err);
+        }
         await deleteDoc(linkDoc.ref);
       }
     } catch (e) {
