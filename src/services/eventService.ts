@@ -12,12 +12,13 @@ import {
   getDocs,
   Timestamp,
 } from 'firebase/firestore';
+import type { DocumentReference } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { TripEvent } from '@/types/event';
 import { Transaction } from '@/pages/Index';
 
 
-function stripUndefined(obj: Record<string, any>): Record<string, any> {
+function stripUndefined(obj: Record<string, unknown>): Record<string, unknown> {
   return Object.fromEntries(Object.entries(obj).filter(([, v]) => v !== undefined));
 }
 
