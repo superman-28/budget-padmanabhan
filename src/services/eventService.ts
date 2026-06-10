@@ -5,6 +5,7 @@ import {
   setDoc,
   updateDoc,
   deleteDoc,
+  getDoc,
   onSnapshot,
   query,
   orderBy,
@@ -19,6 +20,17 @@ import { Transaction } from '@/pages/Index';
 
 function stripUndefined(obj: Record<string, any>): Record<string, any> {
   return Object.fromEntries(Object.entries(obj).filter(([, v]) => v !== undefined));
+}
+
+function mirrorTransaction(txn: Transaction, ownerId: string, ownerEmail: string) {
+  return stripUndefined({
+    ...txn,
+    originalTxnId: txn.id,
+    ownerId,
+    ownerEmail,
+    readOnly: true,
+    syncedAt: Timestamp.now(),
+  });
 }
 
 export const eventService = {
