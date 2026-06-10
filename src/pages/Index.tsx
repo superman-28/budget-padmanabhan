@@ -81,6 +81,14 @@ const Index = () => {
     };
   }, [user]);
 
+  useEffect(() => {
+    if (!user?.email) return;
+    const sharedEventIds = events.filter((e) => (e.sharedWith || []).length > 0).map((e) => e.id);
+    sharedEventIds.forEach((eventId) => {
+      eventService.syncEventTransactionsForRecipients(user.uid, user.email!, eventId);
+    });
+  }, [user, events, transactions]);
+
   const addTransaction = async (transaction: Omit<Transaction, 'id'>) => {
     if (!user) return;
     try {
@@ -91,6 +99,9 @@ const Index = () => {
         user.uid, user.email!, fullTxn
       );
       await eventService.syncTransactionForRecipients(user.uid, user.email!, fullTxn);
+      if (fullTxn.eventId) {
+        await eventService.syncEventTransactionsForRecipients(user.uid, user.email!, fullTxn.eventId);
+      }
     } catch (error) {
       console.error('Error adding transaction:', error);
     }
@@ -99,9 +110,14 @@ const Index = () => {
   const updateTransaction = async (transaction: Transaction) => {
     if (!user) return;
     try {
+      const oldEventId = transactions.find((t) => t.id === transaction.id)?.eventId;
       await firestoreService.updateTransaction(user.uid, transaction);
       await userLinkingService.updateSharedTransaction(user.uid, user.email!, transaction);
       await eventService.syncTransactionForRecipients(user.uid, user.email!, transaction);
+      const eventIdsToSync = Array.from(new Set([oldEventId, transaction.eventId].filter(Boolean) as string[]));
+      for (const eventId of eventIdsToSync) {
+        await eventService.syncEventTransactionsForRecipients(user.uid, user.email!, eventId);
+      }
     } catch (error) {
       console.error('Error updating transaction:', error);
     }
@@ -110,9 +126,13 @@ const Index = () => {
   const deleteTransaction = async (id: string) => {
     if (!user) return;
     try {
+      const deletedTransaction = transactions.find((t) => t.id === id);
       await userLinkingService.deleteSharedTransaction(user.uid, id);
-      await eventService.removeTransactionForRecipients(user.uid, id);
       await firestoreService.deleteTransaction(user.uid, id);
+      await eventService.removeTransactionForRecipients(user.uid, id);
+      if (deletedTransaction?.eventId) {
+        await eventService.syncEventTransactionsForRecipients(user.uid, user.email!, deletedTransaction.eventId);
+      }
     } catch (error) {
       console.error('Error deleting transaction:', error);
     }

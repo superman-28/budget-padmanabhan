@@ -40,6 +40,13 @@ const Events = () => {
     return () => { u1(); u2(); u3(); u4(); u5(); };
   }, [user]);
 
+  useEffect(() => {
+    if (!user?.email) return;
+    events
+      .filter((e) => (e.sharedWith || []).length > 0)
+      .forEach((e) => eventService.syncEventTransactionsForRecipients(user.uid, user.email!, e.id));
+  }, [user, events, transactions]);
+
 
   const activeEvents = useMemo(() => events.filter((e) => e.status === 'active'), [events]);
   const closedEvents = useMemo(() => events.filter((e) => e.status === 'closed'), [events]);
