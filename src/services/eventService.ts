@@ -33,6 +33,12 @@ function mirrorTransaction(txn: Transaction, ownerId: string, ownerEmail: string
   });
 }
 
+type SharedEventLinkData = {
+  originalEventId: string;
+  sharedEventDocId: string;
+  linkedUserId: string;
+};
+
 export const eventService = {
   subscribeToEvents(userId: string, callback: (events: TripEvent[]) => void) {
     const ref = collection(db, 'users', userId, 'events');
@@ -122,7 +128,7 @@ export const eventService = {
       where('linkedUserId', '==', targetUserId)
     );
     const existingLinkSnap = await getDocs(existingLinkQ);
-    let sharedDocRef;
+    let sharedDocRef: DocumentReference;
 
     if (existingLinkSnap.empty) {
       const sharedRef = collection(db, 'users', targetUserId, 'shared_events');
@@ -145,7 +151,7 @@ export const eventService = {
         createdAt: Timestamp.now(),
       });
     } else {
-      const existingLink = existingLinkSnap.docs[0].data();
+      const existingLink = existingLinkSnap.docs[0].data() as SharedEventLinkData;
       sharedDocRef = doc(db, 'users', targetUserId, 'shared_events', existingLink.sharedEventDocId);
       await setDoc(sharedDocRef, stripUndefined({
         ...eventData,
