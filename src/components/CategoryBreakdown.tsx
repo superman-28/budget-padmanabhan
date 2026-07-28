@@ -8,6 +8,7 @@ import { CategoryDetailModal } from './CategoryDetailModal';
 import { CategoryLinkDialog } from './CategoryLinkDialog';
 import { userLinkingService } from '@/services/userLinkingService';
 import { useAuth } from '@/contexts/AuthContext';
+import { getCategoryColor } from '@/lib/categoryColors';
 
 interface Category {
   value: string; label: string; icon: string; color: string;
@@ -70,7 +71,7 @@ export const CategoryBreakdown = ({
           category: catValue,
           label: cat?.label || catValue,
           icon: cat?.icon || '📁',
-          color: cat?.color || '#6b7280',
+          color: getCategoryColor(catValue),
           amount: amounts.total,
           myExpenses: amounts.myExpenses,
           sharedExpenses: amounts.sharedExpenses,

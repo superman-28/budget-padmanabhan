@@ -7,6 +7,7 @@ import { Transaction } from '@/pages/Index';
 import { cn } from '@/lib/utils';
 import { format, isToday } from 'date-fns';
 import { EventShareDialog } from './EventShareDialog';
+import { getCategoryColor } from '@/lib/categoryColors';
 
 interface Props {
   event: TripEvent;
@@ -66,8 +67,14 @@ export const EventCard = ({
   const budgetPct = event.budget ? Math.min(100, (totals.expense / event.budget) * 100) : 0;
   const overBudget = event.budget ? totals.expense > event.budget : false;
 
-  const getCategoryInfo = (categoryValue: string) => categories.find((c) => c.value === categoryValue) || {
-    value: categoryValue, label: categoryValue, icon: '💼', color: '#6b7280',
+  const getCategoryInfo = (categoryValue: string) => {
+    const found = categories.find((c) => c.value === categoryValue);
+    return {
+      value: categoryValue,
+      label: found?.label || categoryValue,
+      icon: found?.icon || '💼',
+      color: getCategoryColor(categoryValue),
+    };
   };
 
   const categoryBreakdown = useMemo(() => {
