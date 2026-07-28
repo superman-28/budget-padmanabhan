@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { CategoryLinkDialog } from './CategoryLinkDialog';
+import { getCategoryColor } from '@/lib/categoryColors';
 
 interface Category {
   value: string;
@@ -191,7 +192,7 @@ export const CategoryManager = ({
                 <>
                   <div 
                     className="w-4 h-4 rounded-full" 
-                    style={{ backgroundColor: category.color }}
+                    style={{ backgroundColor: getCategoryColor(category.value) }}
                   />
                   <span className="text-lg">{category.icon}</span>
                   <span className="flex-1">{category.label}</span>

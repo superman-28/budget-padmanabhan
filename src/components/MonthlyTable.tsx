@@ -9,6 +9,7 @@ import { CollapsibleCard } from './CollapsibleCard';
 import { TransactionEditForm } from './TransactionEditForm';
 import { CategoryDetailModal } from './CategoryDetailModal';
 import { startOfMonth, endOfMonth, isWithinInterval, format } from 'date-fns';
+import { getCategoryColor } from '@/lib/categoryColors';
 
 interface MonthlyTableProps {
   transactions: Transaction[];
@@ -36,8 +37,12 @@ export const MonthlyTable = ({
   }, [transactions, selectedDate]);
 
   const getCategoryInfo = (categoryValue: string) => {
-    return categories.find(cat => cat.value === categoryValue) || {
-      value: categoryValue, label: categoryValue, icon: '📝', color: '#6b7280'
+    const found = categories.find(cat => cat.value === categoryValue);
+    return {
+      value: categoryValue,
+      label: found?.label || categoryValue,
+      icon: found?.icon || '📝',
+      color: getCategoryColor(categoryValue),
     };
   };
 

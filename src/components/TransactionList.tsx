@@ -5,6 +5,7 @@ import { Transaction } from '@/pages/Index';
 import { CollapsibleCard } from './CollapsibleCard';
 import { CategoryDetailModal } from './CategoryDetailModal';
 import { startOfMonth, endOfMonth, isWithinInterval, format, isToday } from 'date-fns';
+import { getCategoryColor } from '@/lib/categoryColors';
 
 interface TransactionListProps {
   transactions: Transaction[];
@@ -33,8 +34,12 @@ export const TransactionList = ({
   }, [transactions, selectedDate]);
 
   const getCategoryInfo = (categoryValue: string) => {
-    return categories.find(cat => cat.value === categoryValue) || {
-      value: categoryValue, label: categoryValue, icon: '💼', color: '#6b7280'
+    const found = categories.find(cat => cat.value === categoryValue);
+    return {
+      value: categoryValue,
+      label: found?.label || categoryValue,
+      icon: found?.icon || '💼',
+      color: getCategoryColor(categoryValue),
     };
   };
 
