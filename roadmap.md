@@ -1,0 +1,3 @@
+- [ ] Restyle shared design tokens and primitives in the uploaded neo-brutalist direction.
+- [ ] Restyle dashboard, loans, events, sign-in, and navigation while preserving current behavior.
+- [ ] Update app metadata and verify the preview on mobile and desktop.
