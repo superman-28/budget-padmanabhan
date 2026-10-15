@@ -8,48 +8,45 @@ import { format } from 'date-fns';
 interface DashboardHeaderProps {
   selectedDate: Date;
   onDateChange: (date: Date) => void;
+  displayName?: string | null;
 }
 
-export const DashboardHeader = ({ selectedDate, onDateChange }: DashboardHeaderProps) => {
+export const DashboardHeader = ({ selectedDate, onDateChange, displayName }: DashboardHeaderProps) => {
+  const greeting = displayName?.trim().split(/\s+/)[0];
+
   return (
-    <div className="rounded-xl border border-border/60 bg-pastel-blue p-5 sm:p-6 shadow-sm animate-fade-in">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div className="space-y-1">
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
-            Finance Tracker
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            Track your daily expenses and monitor your financial health
-          </p>
-        </div>
-        
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Calendar className="h-4 w-4" />
-            <span>Viewing:</span>
-          </div>
-          
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                className="w-[200px] justify-start rounded-lg border-border/60 hover:bg-accent/50 transition-colors"
-              >
-                {format(selectedDate, 'MMMM yyyy')}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="end">
-              <CalendarComponent
-                mode="single"
-                selected={selectedDate}
-                onSelect={(date) => date && onDateChange(date)}
-                initialFocus
-                className="pointer-events-auto"
-              />
-            </PopoverContent>
-          </Popover>
-        </div>
+    <section className="brutalist-card grid gap-5 bg-primary p-5 sm:grid-cols-[1fr_auto] sm:items-end sm:p-7">
+      <div className="min-w-0 space-y-2">
+        <p className="brutalist-label text-foreground">YOUR MONEY, YOUR MOMENTUM</p>
+        <h1 className="font-display text-3xl font-bold leading-tight sm:text-4xl">
+          {greeting ? `Good to see you, ${greeting}.` : 'Your money, in focus.'}
+        </h1>
+        <p className="max-w-xl text-sm text-foreground/75">
+          A clearer view of what came in, what went out, and where you’re headed.
+        </p>
       </div>
-    </div>
+
+      <div className="flex flex-wrap items-center gap-2 sm:justify-end">
+        <span className="brutalist-label flex items-center gap-2 text-foreground">
+          <Calendar className="h-4 w-4" /> MONTH
+        </span>
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button variant="outline" className="min-h-11 w-full justify-start bg-card sm:w-[190px]">
+              {format(selectedDate, 'MMMM yyyy')}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0" align="end">
+            <CalendarComponent
+              mode="single"
+              selected={selectedDate}
+              onSelect={(date) => date && onDateChange(date)}
+              initialFocus
+              className="pointer-events-auto"
+            />
+          </PopoverContent>
+        </Popover>
+      </div>
+    </section>
   );
 };

@@ -8,6 +8,7 @@ import { CategoryBreakdown } from '@/components/CategoryBreakdown';
 import { MonthlyTable } from '@/components/MonthlyTable';
 import { PaymentModeManager, PaymentMode } from '@/components/PaymentModeManager';
 import AuthHeader from '@/components/AuthHeader';
+import AppShell from '@/components/AppShell';
 import { useAuth } from '@/contexts/AuthContext';
 import { firestoreService } from '@/services/firestoreService';
 import { userLinkingService } from '@/services/userLinkingService';
@@ -171,24 +172,25 @@ const Index = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-20 w-20 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-4 text-muted-foreground">Loading your financial data...</p>
+      <AppShell>
+        <div className="flex min-h-[60vh] items-center justify-center">
+          <div className="brutalist-card flex items-center gap-4 bg-card p-5">
+            <div className="h-7 w-7 animate-spin rounded-full border-4 border-foreground border-t-primary" />
+            <p className="font-medium">Loading your financial data...</p>
+          </div>
         </div>
-      </div>
+      </AppShell>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <AuthHeader />
-      <div className="max-w-7xl mx-auto px-3 sm:px-4 py-4 sm:py-6 space-y-4 sm:space-y-6">
-        <DashboardHeader selectedDate={selectedDate} onDateChange={setSelectedDate} />
+    <AppShell>
+      <div className="mx-auto max-w-7xl space-y-5 px-4 py-5 sm:px-7 sm:py-8">
+        <DashboardHeader selectedDate={selectedDate} onDateChange={setSelectedDate} displayName={user?.displayName} />
         <QuickStats transactions={transactions} selectedDate={selectedDate} />
         
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
-          <div className="lg:col-span-2 space-y-4 sm:space-y-6">
+        <div className="grid grid-cols-1 gap-5 xl:grid-cols-3">
+          <div className="space-y-5 xl:col-span-2">
             <ExpenseForm 
               onAddTransaction={addTransaction} 
               categories={categories}
@@ -218,7 +220,7 @@ const Index = () => {
             />
           </div>
           
-          <div className="space-y-4 sm:space-y-6">
+          <div className="space-y-5">
             <CategoryBreakdown 
               transactions={transactions} 
               selectedDate={selectedDate}
@@ -235,7 +237,7 @@ const Index = () => {
           </div>
         </div>
       </div>
-    </div>
+    </AppShell>
   );
 };
 

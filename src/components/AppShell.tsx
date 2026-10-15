@@ -14,7 +14,7 @@ const AppShell = ({ children }: AppShellProps) => {
   return (
     <>
       <AuthHeader />
-      <main className="min-h-screen pb-24 lg:ml-64 lg:pb-0">{children}</main>
+      <main className="min-h-screen overflow-x-hidden pb-24 lg:ml-64 lg:pb-0">{children}</main>
     </>
   );
 };
