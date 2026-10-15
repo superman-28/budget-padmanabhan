@@ -1,0 +1,1 @@
+- Route all signed-in views through the shared `AppShell`, keeping responsive navigation and page layout consistent because the app has multiple authenticated routes.

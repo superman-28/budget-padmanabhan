@@ -2,6 +2,7 @@ import { LoanSummary } from '@/components/loans/LoanSummary';
 import { LoanFormDialog } from '@/components/loans/LoanFormDialog';
 import { LoanCard } from '@/components/loans/LoanCard';
 import AuthHeader from '@/components/AuthHeader';
+import AppShell from '@/components/AppShell';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -58,26 +59,27 @@ const Loans = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary mx-auto" />
-          <p className="mt-4 text-muted-foreground">Loading your loans...</p>
+      <AppShell>
+        <div className="flex min-h-[60vh] items-center justify-center">
+          <div className="brutalist-card flex items-center gap-4 bg-card p-5">
+            <div className="h-7 w-7 animate-spin rounded-full border-4 border-foreground border-t-primary" />
+            <p className="font-medium">Loading your loans...</p>
+          </div>
         </div>
-      </div>
+      </AppShell>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <AuthHeader />
-      <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
+    <AppShell>
+      <div className="mx-auto max-w-4xl space-y-6 px-4 py-5 sm:px-7 sm:py-8">
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 sm:gap-3 min-w-0">
             <Button variant="ghost" size="icon" className="flex-shrink-0" onClick={() => navigate('/')}>
               <ArrowLeft className="h-5 w-5" />
             </Button>
             <div className="min-w-0">
-              <h1 className="text-headline truncate">Loans</h1>
+              <h1 className="font-display text-3xl font-bold">Loans</h1>
               <p className="text-caption hidden sm:block">Track money you borrowed</p>
             </div>
           </div>
@@ -146,7 +148,7 @@ const Loans = () => {
           }}
         />
       </div>
-    </div>
+    </AppShell>
   );
 };
 

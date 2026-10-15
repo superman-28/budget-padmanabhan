@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import AuthHeader from '@/components/AuthHeader';
+import AppShell from '@/components/AppShell';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, MapPin } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -115,12 +116,14 @@ const Events = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-20 w-20 border-b-2 border-primary mx-auto" />
-          <p className="mt-4 text-muted-foreground">Loading events...</p>
+      <AppShell>
+        <div className="flex min-h-[60vh] items-center justify-center">
+          <div className="brutalist-card flex items-center gap-4 bg-card p-5">
+            <div className="h-7 w-7 animate-spin rounded-full border-4 border-foreground border-t-primary" />
+            <p className="font-medium">Loading events...</p>
+          </div>
         </div>
-      </div>
+      </AppShell>
     );
   }
 
@@ -145,16 +148,15 @@ const Events = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <AuthHeader />
-      <div className="max-w-4xl mx-auto px-3 sm:px-4 py-4 sm:py-6 space-y-4">
+    <AppShell>
+      <div className="mx-auto max-w-4xl space-y-5 px-4 py-5 sm:px-7 sm:py-8">
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 min-w-0">
             <Button variant="ghost" size="icon" onClick={() => navigate('/')} className="flex-shrink-0">
               <ArrowLeft className="h-5 w-5" />
             </Button>
             <div className="min-w-0">
-              <h1 className="text-lg sm:text-xl font-bold flex items-center gap-2 truncate">
+              <h1 className="font-display text-2xl font-bold flex items-center gap-2 truncate">
                 <MapPin className="h-5 w-5 text-primary" /> Events & Trips
               </h1>
               <p className="text-xs text-muted-foreground hidden sm:block">Track expenses for trips and events</p>
@@ -191,7 +193,7 @@ const Events = () => {
           onOpenChange={(o) => { setEditOpen(o); if (!o) setEditEvent(null); }}
         />
       </div>
-    </div>
+    </AppShell>
   );
 };
 
