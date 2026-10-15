@@ -30,6 +30,13 @@ export default {
 					foreground: 'hsl(var(--primary-foreground))',
 					light: 'hsl(var(--primary-light))'
 				},
+				coral: {
+					DEFAULT: 'hsl(var(--coral))',
+					foreground: 'hsl(var(--coral-foreground))'
+				},
+				sky: 'hsl(var(--sky))',
+				sunflower: 'hsl(var(--sunflower))',
+				'chart-grid': 'hsl(var(--chart-grid))',
 				secondary: {
 					DEFAULT: 'hsl(var(--secondary))',
 					foreground: 'hsl(var(--secondary-foreground))'
@@ -83,6 +90,7 @@ export default {
 			},
 			fontFamily: {
 				sans: ['Inter', 'system-ui', 'sans-serif'],
+				display: ['Space Grotesk', 'Inter', 'system-ui', 'sans-serif'],
 			},
 			spacing: {
 				xs: 'var(--space-xs)',
