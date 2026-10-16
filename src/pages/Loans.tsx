@@ -1,7 +1,6 @@
 import { LoanSummary } from '@/components/loans/LoanSummary';
 import { LoanFormDialog } from '@/components/loans/LoanFormDialog';
 import { LoanCard } from '@/components/loans/LoanCard';
-import AuthHeader from '@/components/AuthHeader';
 import AppShell from '@/components/AppShell';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
