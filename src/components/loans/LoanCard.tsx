@@ -115,7 +115,7 @@ export const LoanCard = ({
 
   return (
     <>
-      <Card className={`slide-up ${isOverdue ? 'border-destructive/50' : ''}`}>
+      <Card className={`brutalist-card slide-up ${isOverdue ? 'border-destructive' : ''}`}>
         <CardHeader className="pb-2">
           <div className="flex items-start justify-between gap-2">
             <div className="flex-1 min-w-0">

@@ -32,7 +32,7 @@ export const MonthlyChart = ({ transactions, selectedDate }: MonthlyChartProps) 
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
       return (
-        <div className="bg-card border rounded-lg p-3 shadow-lg">
+        <div className="rounded-md border-2 border-foreground bg-card p-3 text-card-foreground shadow-md">
           <p className="font-medium text-sm">Day {label}</p>
           <div className="space-y-1 mt-1">
             {payload.map((entry: any) => (
@@ -52,17 +52,17 @@ export const MonthlyChart = ({ transactions, selectedDate }: MonthlyChartProps) 
       title={`Daily Overview - ${format(selectedDate, 'MMMM yyyy')}`}
       icon={<TrendingUp className="h-4 w-4 text-primary" />}
       defaultOpen={false}
-      className="bg-pastel-cyan"
+      className="bg-card"
     >
       <div className="h-64 sm:h-72">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={chartData} margin={{ top: 10, right: 10, left: -10, bottom: 5 }}>
-            <CartesianGrid strokeDasharray="3 3" className="opacity-20" />
-            <XAxis dataKey="date" tick={{ fontSize: 10 }} interval="preserveStartEnd" />
-            <YAxis tick={{ fontSize: 10 }} />
+          <CartesianGrid stroke="hsl(var(--chart-grid))" strokeDasharray="4 4" />
+          <XAxis dataKey="date" tick={{ fontSize: 10, fontWeight: 600 }} interval="preserveStartEnd" />
+          <YAxis tick={{ fontSize: 10, fontWeight: 600 }} />
             <Tooltip content={<CustomTooltip />} />
-            <Bar dataKey="expenses" fill="hsl(0 72% 51%)" radius={[2, 2, 0, 0]} />
-            <Bar dataKey="income" fill="hsl(142 76% 36%)" radius={[2, 2, 0, 0]} />
+          <Bar dataKey="expenses" fill="hsl(var(--coral))" radius={[2, 2, 0, 0]} />
+          <Bar dataKey="income" fill="hsl(var(--success))" radius={[2, 2, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </div>

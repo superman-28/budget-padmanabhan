@@ -7,7 +7,6 @@ import { MonthlyChart } from '@/components/MonthlyChart';
 import { CategoryBreakdown } from '@/components/CategoryBreakdown';
 import { MonthlyTable } from '@/components/MonthlyTable';
 import { PaymentModeManager, PaymentMode } from '@/components/PaymentModeManager';
-import AuthHeader from '@/components/AuthHeader';
 import AppShell from '@/components/AppShell';
 import { useAuth } from '@/contexts/AuthContext';
 import { firestoreService } from '@/services/firestoreService';

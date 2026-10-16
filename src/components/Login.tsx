@@ -78,10 +78,11 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-bold">Finance Tracker</CardTitle>
+    <div className="flex min-h-screen items-center justify-center bg-background p-4 sm:p-8">
+      <Card className="w-full max-w-md border-2 border-foreground shadow-lg">
+        <CardHeader className="space-y-4 text-center">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center border-2 border-foreground bg-primary font-display text-3xl font-bold shadow-sm">₹</div>
+          <CardTitle className="font-display text-3xl font-bold">Finance Tracker</CardTitle>
           <CardDescription>
             {isSignUp
               ? 'Create an account to start tracking your expenses'

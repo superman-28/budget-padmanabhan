@@ -25,21 +25,20 @@ export const CollapsibleCard = ({
   return (
     <div
       className={cn(
-        'rounded-xl border border-border/60 bg-card text-card-foreground overflow-hidden',
-        'shadow-sm transition-shadow duration-300 hover:shadow-md',
+        'brutalist-card overflow-hidden',
         'animate-fade-in',
         className
       )}
     >
       <button
         type="button"
-        className="w-full cursor-pointer select-none px-4 sm:px-5 py-3.5 sm:py-4 transition-colors hover:bg-accent/40"
+        className="w-full cursor-pointer select-none border-b-2 border-foreground px-4 py-3.5 text-left transition-colors hover:bg-accent/40 sm:px-5 sm:py-4"
         onClick={() => setIsOpen(!isOpen)}
       >
-        <div className="flex items-center justify-between text-sm sm:text-base font-semibold">
-          <div className="flex items-center gap-2 text-foreground">
-            {icon && <span className="text-primary">{icon}</span>}
-            {title}
+        <div className="flex items-center justify-between gap-3 text-sm font-bold sm:text-base">
+          <div className="flex min-w-0 items-center gap-2 text-foreground">
+            {icon && <span className="shrink-0 text-foreground">{icon}</span>}
+            <span className="truncate font-display">{title}</span>
           </div>
           <div className="flex items-center gap-2">
             {headerExtra}

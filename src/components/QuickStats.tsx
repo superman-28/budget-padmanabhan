@@ -11,10 +11,10 @@ interface QuickStatsProps {
 }
 
 const statStyles = [
-  { bg: 'bg-pastel-rose', iconBg: 'bg-destructive/12', text: 'text-destructive', border: 'border-destructive/15' },
-  { bg: 'bg-pastel-green', iconBg: 'bg-success/12', text: 'text-success', border: 'border-success/15' },
-  { bg: '', iconBg: '', text: '', border: '' }, // dynamic
-  { bg: 'bg-pastel-indigo', iconBg: 'bg-primary/12', text: 'text-primary', border: 'border-primary/15' },
+  { bg: 'bg-secondary', iconBg: 'bg-card', text: 'text-destructive', border: 'border-foreground' },
+  { bg: 'bg-accent', iconBg: 'bg-card', text: 'text-success', border: 'border-foreground' },
+  { bg: '', iconBg: 'bg-card', text: '', border: 'border-foreground' },
+  { bg: 'bg-sunflower', iconBg: 'bg-card', text: 'text-foreground', border: 'border-foreground' },
 ];
 
 export const QuickStats = ({ transactions, selectedDate }: QuickStatsProps) => {
@@ -59,8 +59,8 @@ export const QuickStats = ({ transactions, selectedDate }: QuickStatsProps) => {
       title: 'Net Amount',
       value: `${monthStats.netAmount >= 0 ? '+' : ''}₹${monthStats.netAmount.toFixed(2)}`,
       style: monthStats.netAmount >= 0
-        ? { bg: 'bg-pastel-green', iconBg: 'bg-success/12', text: 'text-success', border: 'border-success/15' }
-        : { bg: 'bg-pastel-rose', iconBg: 'bg-destructive/12', text: 'text-destructive', border: 'border-destructive/15' },
+        ? { bg: 'bg-primary', iconBg: 'bg-card', text: 'text-foreground', border: 'border-foreground' }
+        : { bg: 'bg-secondary', iconBg: 'bg-card', text: 'text-destructive', border: 'border-foreground' },
     },
     {
       icon: Target,
@@ -72,13 +72,12 @@ export const QuickStats = ({ transactions, selectedDate }: QuickStatsProps) => {
   ];
 
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+    <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
       {cards.map((card, i) => (
         <div
           key={card.title}
           className={cn(
-            'relative rounded-xl border p-4 sm:p-5 transition-all duration-300 ease-out',
-            'hover:shadow-md hover:-translate-y-0.5',
+            'brutalist-card relative p-3.5 sm:p-5 transition-all duration-150 ease-out',
             'animate-fade-in',
             card.style.bg,
             card.style.border
@@ -87,15 +86,15 @@ export const QuickStats = ({ transactions, selectedDate }: QuickStatsProps) => {
         >
           <div className="flex items-start justify-between gap-2">
             <div className="space-y-1 min-w-0">
-              <p className="text-xs sm:text-sm text-muted-foreground truncate">{card.title}</p>
-              <p className={cn('text-lg sm:text-xl font-bold tracking-tight', card.style.text)}>
+              <p className="brutalist-label">{card.title}</p>
+              <p className={cn('break-words font-display text-lg font-bold leading-tight sm:text-2xl', card.style.text)}>
                 {card.value}
               </p>
               {card.trend && (
                 <p className="text-[11px] sm:text-xs text-muted-foreground">{card.trend}</p>
               )}
             </div>
-            <div className={cn('p-2 sm:p-2.5 rounded-lg shrink-0', card.style.iconBg)}>
+            <div className={cn('shrink-0 border-2 border-foreground p-2 sm:p-2.5', card.style.iconBg)}>
               <card.icon className={cn('h-4 w-4 sm:h-5 sm:w-5', card.style.text)} />
             </div>
           </div>

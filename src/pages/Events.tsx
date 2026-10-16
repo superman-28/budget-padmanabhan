@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from 'react';
-import AuthHeader from '@/components/AuthHeader';
 import AppShell from '@/components/AppShell';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, MapPin } from 'lucide-react';

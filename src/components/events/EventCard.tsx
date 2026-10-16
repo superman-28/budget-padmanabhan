@@ -100,7 +100,7 @@ export const EventCard = ({
 
   return (
     <>
-      <div className="rounded-xl border border-border/60 bg-card overflow-hidden shadow-sm animate-fade-in">
+      <div className="brutalist-card overflow-hidden animate-fade-in">
         <div className="px-4 pt-4 pb-2">
           <div className="flex items-start justify-between gap-2">
             <button type="button" onClick={() => setOpen(!open)} className="flex-1 min-w-0 text-left">
@@ -137,18 +137,18 @@ export const EventCard = ({
             </div>
           </div>
 
-          <button type="button" onClick={() => setOpen(!open)} className="w-full text-left">
+            <button type="button" onClick={() => setOpen(!open)} className="w-full border-t-2 border-foreground text-left">
             <div className="grid grid-cols-3 gap-2 mt-3">
-              <div className="rounded-lg bg-pastel-rose px-2 py-1.5">
-                <p className="text-[10px] text-muted-foreground">Spent</p>
+              <div className="border-2 border-foreground bg-secondary px-2 py-1.5">
+                <p className="brutalist-label">Spent</p>
                 <p className="text-sm font-semibold text-destructive">₹{totals.expense.toFixed(0)}</p>
               </div>
-              <div className="rounded-lg bg-pastel-green px-2 py-1.5">
-                <p className="text-[10px] text-muted-foreground">Income</p>
+              <div className="border-2 border-foreground bg-primary px-2 py-1.5">
+                <p className="brutalist-label">Income</p>
                 <p className="text-sm font-semibold text-success">₹{totals.income.toFixed(0)}</p>
               </div>
-              <div className="rounded-lg bg-pastel-indigo px-2 py-1.5">
-                <p className="text-[10px] text-muted-foreground">Txns</p>
+              <div className="border-2 border-foreground bg-accent px-2 py-1.5">
+                <p className="brutalist-label">Txns</p>
                 <p className="text-sm font-semibold">{eventTxns.length}</p>
               </div>
             </div>
@@ -161,7 +161,7 @@ export const EventCard = ({
                     ₹{totals.expense.toFixed(0)} / ₹{event.budget.toFixed(0)}
                   </span>
                 </div>
-                <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+                <div className="h-3 overflow-hidden border-2 border-foreground bg-muted">
                   <div className={cn('h-full transition-all', overBudget ? 'bg-destructive' : 'bg-primary')} style={{ width: `${budgetPct}%` }} />
                 </div>
               </div>

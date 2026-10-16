@@ -128,8 +128,8 @@ const AuthHeader = () => {
             <span className="font-display text-2xl font-bold">₹</span>
           </div>
           <div className="min-w-0">
-            <p className="font-display text-lg font-bold leading-tight">Money Matters</p>
-            <p className="text-xs text-muted-foreground">Your personal ledger</p>
+            <p className="font-display text-lg font-bold leading-tight">Finance Tracker</p>
+            <p className="text-xs text-muted-foreground">Personal finances</p>
           </div>
         </div>
         <nav aria-label="Main navigation" className="mt-7 flex flex-col gap-2">
@@ -160,7 +160,7 @@ const AuthHeader = () => {
       <header className="sticky top-0 z-40 flex items-center justify-between border-b-2 border-foreground bg-background px-4 py-3 lg:hidden">
         <div className="flex min-w-0 items-center gap-2">
           <div className="flex h-9 w-9 shrink-0 items-center justify-center border-2 border-foreground bg-primary font-display text-xl font-bold shadow-sm">₹</div>
-          <span className="truncate font-display text-base font-bold">Money Matters</span>
+          <span className="truncate font-display text-base font-bold">Finance Tracker</span>
         </div>
         <div className="flex shrink-0 items-center gap-2">
           {notificationButton}

@@ -92,7 +92,7 @@ export const CategoryBreakdown = ({
         title="Category Breakdown"
         icon={<PieChart className="h-4 w-4 text-primary" />}
         defaultOpen={true}
-        className="bg-pastel-rose"
+        className="bg-card"
       >
         {dataWithPercentages.length === 0 ? (
           <p className="text-muted-foreground text-center py-6 text-sm">No expense data for this month</p>
