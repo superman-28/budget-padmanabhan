@@ -75,7 +75,7 @@ export const TransactionList = ({
         title="Recent Transactions"
         icon={<Calendar className="h-4 w-4 text-primary" />}
         defaultOpen={true}
-        className="bg-pastel-amber"
+        className="bg-card"
       >
         {filteredTransactions.length === 0 ? (
           <div className="text-center py-6 text-muted-foreground">
@@ -87,7 +87,7 @@ export const TransactionList = ({
             {filteredTransactions.map((transaction) => (
               <div
                 key={transaction.id}
-                className="flex items-center justify-between p-2.5 rounded-lg group border border-border/50 hover:border-border transition-colors"
+                className="flex items-center justify-between gap-2 rounded-lg border-2 border-foreground bg-card p-2.5 shadow-sm transition-[transform,box-shadow] hover:-translate-y-0.5 hover:shadow-md"
                 style={{ borderLeft: `3px solid ${getCategoryInfo(transaction.category.split(',')[0].trim()).color}` }}
               >
                 <div className="flex items-center gap-2.5 flex-1 min-w-0">
