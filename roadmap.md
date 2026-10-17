@@ -2,4 +2,5 @@
 - [x] Restyle dashboard, loans, events, sign-in, and navigation while preserving current behavior.
 - [x] Update app metadata and verify the preview on mobile and desktop.
 - [x] Support the existing `/index` preview URL as the dashboard route.
-- [ ] Recheck the preview and build status after adding the `/index` route alias.
+- [x] Recheck the preview and build status after adding the `/index` route alias.
+- [ ] Verify signed-in dashboard, loans, and events screens in a usable authenticated session (blocked: no test session is available here).
