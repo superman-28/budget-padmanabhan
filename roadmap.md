@@ -1,3 +1,5 @@
-- [ ] Restyle shared design tokens and primitives in the uploaded neo-brutalist direction.
-- [ ] Restyle dashboard, loans, events, sign-in, and navigation while preserving current behavior.
-- [ ] Update app metadata and verify the preview on mobile and desktop.
+- [x] Restyle shared design tokens and primitives in the uploaded neo-brutalist direction.
+- [x] Restyle dashboard, loans, events, sign-in, and navigation while preserving current behavior.
+- [x] Update app metadata and verify the preview on mobile and desktop.
+- [x] Support the existing `/index` preview URL as the dashboard route.
+- [ ] Recheck the preview and build status after adding the `/index` route alias.

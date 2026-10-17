@@ -21,6 +21,7 @@ const App = () => (
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<AuthGuard><Index /></AuthGuard>} />
+            <Route path="/index" element={<AuthGuard><Index /></AuthGuard>} />
             <Route path="/loans" element={<AuthGuard><Loans /></AuthGuard>} />
             <Route path="/events" element={<AuthGuard><Events /></AuthGuard>} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
