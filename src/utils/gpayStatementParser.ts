@@ -99,9 +99,7 @@ export async function parseGooglePayStatement(file: File): Promise<{
     if (totalStatementRows === 0) {
       throw new Error('No Google Pay transactions were found. Use a downloaded, text-based PDF statement.');
     }
-    if (seenIds.size + (totalStatementRows - seenIds.size) < totalStatementRows ||
-        transactions.length + selfTransfersSkipped !== seenIds.size ||
-        seenIds.size !== totalStatementRows) {
+    if (transactions.length + selfTransfersSkipped !== totalStatementRows) {
       throw new Error('Some statement rows could not be read accurately. No transactions were imported.');
     }
     return { transactions, selfTransfersSkipped };
