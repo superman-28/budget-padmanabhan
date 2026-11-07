@@ -2,6 +2,7 @@ import { useMemo, useRef, useState } from 'react';
 import { FileText, FileUp, Loader2, ShieldCheck } from 'lucide-react';
 import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
@@ -48,6 +49,7 @@ export const StatementImport = ({ transactions, categories, userEmail, onImport 
     fileName: string;
   } | null>(null);
   const [categoryById, setCategoryById] = useState<Record<string, string>>({});
+  const [descriptionById, setDescriptionById] = useState<Record<string, string>>({});
 
   const existingStatementIds = useMemo(
     () => new Set(transactions.map((transaction) => transaction.sourceTransactionId).filter(Boolean)),
@@ -64,6 +66,7 @@ export const StatementImport = ({ transactions, categories, userEmail, onImport 
     setError('');
     setParsed(null);
     setCategoryById({});
+    setDescriptionById({});
     setParsing(true);
     setOpen(true);
     try {
@@ -75,6 +78,9 @@ export const StatementImport = ({ transactions, categories, userEmail, onImport 
       setParsed({ entries: result.transactions, selfTransfersSkipped: result.selfTransfersSkipped, fileName: file.name });
       setCategoryById(Object.fromEntries(
         result.transactions.map((entry) => [entry.transactionId, suggestCategory(entry.description, categories)])
+      ));
+      setDescriptionById(Object.fromEntries(
+        result.transactions.map((entry) => [entry.transactionId, entry.description])
       ));
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'The statement could not be read.');
@@ -91,7 +97,7 @@ export const StatementImport = ({ transactions, categories, userEmail, onImport 
       const rows: Omit<Transaction, 'id'>[] = newEntries.map((entry) => ({
         amount: entry.amount,
         category: categoryById[entry.transactionId] || 'uncategorized',
-        description: entry.description,
+        description: descriptionById[entry.transactionId] ?? entry.description,
         date: entry.date,
         type: entry.type,
         paidBy: userEmail,
@@ -185,7 +191,15 @@ export const StatementImport = ({ transactions, categories, userEmail, onImport 
                       {newEntries.map((entry) => (
                         <tr key={entry.transactionId} className="border-t">
                           <td className="whitespace-nowrap p-2">{format(new Date(entry.date), 'dd MMM yyyy, h:mm a')}</td>
-                          <td className="max-w-[240px] truncate p-2" title={entry.description}>{entry.description}</td>
+                          <td className="p-2">
+                            <Label className="sr-only" htmlFor={'description-' + entry.transactionId}>Description</Label>
+                            <Input
+                              id={'description-' + entry.transactionId}
+                              value={descriptionById[entry.transactionId] ?? entry.description}
+                              onChange={(e) => setDescriptionById((current) => ({ ...current, [entry.transactionId]: e.target.value }))}
+                              className="min-w-[210px] max-w-[300px]"
+                            />
+                          </td>
                           <td className="p-2 capitalize">{entry.type}</td>
                           <td className="whitespace-nowrap p-2 text-right font-medium">₹{entry.amount.toFixed(2)}</td>
                           <td className="p-2">
