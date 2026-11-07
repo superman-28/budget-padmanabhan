@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from 'react';
-import { FileText, FileUp, Loader2, ShieldCheck } from 'lucide-react';
+import { FileText, FileUp, Loader2, ShieldCheck, Plus, Minus } from 'lucide-react';
 import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -53,13 +53,15 @@ export const StatementImport = ({ transactions, categories, userEmail, onImport 
   const [categoryById, setCategoryById] = useState<Record<string, string>>({});
   const [descriptionById, setDescriptionById] = useState<Record<string, string>>({});
   const [confirmedTotalsWarning, setConfirmedTotalsWarning] = useState(false);
+  const [includedById, setIncludedById] = useState<Record<string, boolean>>({});
 
   const existingStatementIds = useMemo(
     () => new Set(transactions.map((transaction) => transaction.sourceTransactionId).filter(Boolean)),
     [transactions]
   );
   const duplicateCount = parsed?.entries.filter((entry) => existingStatementIds.has(entry.transactionId)).length || 0;
-  const newEntries = parsed?.entries.filter((entry) => !existingStatementIds.has(entry.transactionId)) || [];
+  const skippedCount = parsed?.entries.filter((entry) => existingStatementIds.has(entry.transactionId) || entry.selfTransfer).length || 0;
+  const selectedEntries = parsed?.entries.filter((entry) => includedById[entry.transactionId] ?? (!entry.selfTransfer && !existingStatementIds.has(entry.transactionId))) || [];
   const totalsMatch = Boolean(parsed?.summaryTotals &&
     Math.abs(parsed.summaryTotals.sent - parsed.parsedTotals.sent) < 0.01 &&
     Math.abs(parsed.summaryTotals.received - parsed.parsedTotals.received) < 0.01);
@@ -75,6 +77,7 @@ export const StatementImport = ({ transactions, categories, userEmail, onImport 
     setCategoryById({});
     setDescriptionById({});
     setConfirmedTotalsWarning(false);
+    setIncludedById({});
     setParsing(true);
     setOpen(true);
     try {
@@ -83,6 +86,7 @@ export const StatementImport = ({ transactions, categories, userEmail, onImport 
       }
       const { parseGooglePayStatement } = await import('@/utils/gpayStatementParser');
       const result = await parseGooglePayStatement(file);
+      setIncludedById(Object.fromEntries(result.transactions.map((entry) => [entry.transactionId, !entry.selfTransfer && !transactions.some((transaction) => transaction.sourceTransactionId === entry.transactionId)])));
       setParsed({
         entries: result.transactions,
         selfTransfersSkipped: result.selfTransfersSkipped,
@@ -104,11 +108,11 @@ export const StatementImport = ({ transactions, categories, userEmail, onImport 
   };
 
   const handleImport = async () => {
-    if (!parsed || newEntries.length === 0) return;
+    if (!parsed || selectedEntries.length === 0) return;
     setImporting(true);
     setError('');
     try {
-      const rows: Omit<Transaction, 'id'>[] = newEntries.map((entry) => ({
+      const rows: Omit<Transaction, 'id'>[] = selectedEntries.map((entry) => ({
         amount: entry.amount,
         category: categoryById[entry.transactionId] || 'uncategorized',
         description: descriptionById[entry.transactionId] ?? entry.description,
@@ -183,8 +187,8 @@ export const StatementImport = ({ transactions, categories, userEmail, onImport 
               <div className="flex flex-wrap items-center gap-2 text-xs">
                 <span className="rounded-full border border-foreground/20 bg-accent px-2.5 py-1">{parsed.fileName}</span>
                 <span>{parsed.entries.length} transactions found</span>
-                {duplicateCount > 0 && <span>{duplicateCount} already imported, will be skipped</span>}
-                {parsed.selfTransfersSkipped > 0 && <span>{parsed.selfTransfersSkipped} self-transfers skipped</span>}
+                {duplicateCount > 0 && <span>{duplicateCount} already imported by default</span>}
+                {skippedCount > 0 && <span>{skippedCount} skipped by default (dimmed below)</span>}
               </div>
 
               <div className={'rounded-lg border p-3 text-xs ' + (totalsMatch ? 'border-success/30 bg-success/5' : 'border-destructive/30 bg-destructive/5')}>
@@ -202,7 +206,7 @@ export const StatementImport = ({ transactions, categories, userEmail, onImport 
                   <span>Extracted received: ₹{parsed.parsedTotals.received.toFixed(2)}</span>
                 </div>
               </div>
-              {needsTotalsConfirmation && newEntries.length > 0 && (
+              {needsTotalsConfirmation && selectedEntries.length > 0 && (
                 <label className="flex cursor-pointer items-start gap-2 rounded-md border p-3 text-sm">
                   <input
                     type="checkbox"
@@ -214,8 +218,8 @@ export const StatementImport = ({ transactions, categories, userEmail, onImport 
                 </label>
               )}
 
-              {newEntries.length === 0 ? (
-                <p className="rounded-md border p-4 text-sm text-muted-foreground">Every transaction in this statement has already been imported.</p>
+              {parsed.entries.length === 0 ? (
+                <p className="rounded-md border p-4 text-sm text-muted-foreground">No transactions are selected. Use Add to import a dimmed row.</p>
               ) : (
                 <div className="max-h-[55vh] overflow-auto rounded-lg border">
                   <table className="w-full min-w-[620px] text-sm">
@@ -226,11 +230,15 @@ export const StatementImport = ({ transactions, categories, userEmail, onImport 
                         <th className="p-2">Type</th>
                         <th className="p-2 text-right">Amount</th>
                         <th className="p-2">Category</th>
+                        <th className="p-2">Import</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {newEntries.map((entry) => (
-                        <tr key={entry.transactionId} className="border-t">
+                      {parsed.entries.map((entry) => {
+                        const included = includedById[entry.transactionId] ?? (!entry.selfTransfer && !existingStatementIds.has(entry.transactionId));
+                        const duplicate = existingStatementIds.has(entry.transactionId);
+                        return (
+                        <tr key={entry.transactionId} className={'border-t ' + (!included ? 'bg-muted/50 text-muted-foreground opacity-60' : '')}>
                           <td className="whitespace-nowrap p-2">{format(new Date(entry.date), 'dd MMM yyyy, h:mm a')}</td>
                           <td className="p-2">
                             <Label className="sr-only" htmlFor={'description-' + entry.transactionId}>Description</Label>
@@ -241,13 +249,14 @@ export const StatementImport = ({ transactions, categories, userEmail, onImport 
                               className="min-w-[210px] max-w-[300px]"
                             />
                           </td>
-                          <td className="p-2 capitalize">{entry.type}</td>
+                          <td className="p-2">{entry.selfTransfer ? 'Self transfer' : entry.type}</td>
                           <td className="whitespace-nowrap p-2 text-right font-medium">₹{entry.amount.toFixed(2)}</td>
                           <td className="p-2">
                             <Label className="sr-only" htmlFor={'category-' + entry.transactionId}>Category</Label>
                             <select
                               id={'category-' + entry.transactionId}
                               value={categoryById[entry.transactionId] || 'uncategorized'}
+                              disabled={entry.selfTransfer}
                               onChange={(e) => setCategoryById((current) => ({ ...current, [entry.transactionId]: e.target.value }))}
                               className="w-36 rounded-md border bg-background px-2 py-1.5 text-xs"
                             >
@@ -257,8 +266,16 @@ export const StatementImport = ({ transactions, categories, userEmail, onImport 
                               ))}
                             </select>
                           </td>
+                          <td className="p-2">
+                            <div className="flex min-w-32 flex-col gap-1">
+                              {!included && <span className="text-[10px] leading-tight">{entry.selfTransfer ? 'Self transfer' : ''}{entry.selfTransfer && duplicate ? ' · ' : ''}{duplicate ? 'Already imported' : ''}</span>}
+                              <Button type="button" size="sm" variant={included ? 'outline' : 'default'} onClick={() => setIncludedById((current) => ({ ...current, [entry.transactionId]: !included }))}>
+                                {included ? <><Minus className="mr-1 h-3 w-3" />Remove</> : <><Plus className="mr-1 h-3 w-3" />Add</>}
+                              </Button>
+                            </div>
+                          </td>
                         </tr>
-                      ))}
+                      );})}
                     </tbody>
                   </table>
                 </div>
@@ -274,7 +291,7 @@ export const StatementImport = ({ transactions, categories, userEmail, onImport 
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)} disabled={parsing || importing}>Cancel</Button>
             {parsed && (
-              <Button onClick={handleImport} disabled={importing || newEntries.length === 0 || (needsTotalsConfirmation && !confirmedTotalsWarning)}>
+              <Button onClick={handleImport} disabled={importing || selectedEntries.length === 0 || (needsTotalsConfirmation && !confirmedTotalsWarning)}>
                 {importing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Import {newEntries.length} transactions
               </Button>

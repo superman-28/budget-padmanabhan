@@ -107,8 +107,8 @@ export const MonthlyTable = ({
                         <p className="flex items-center gap-1.5 text-xs text-muted-foreground">{format(new Date(transaction.date), 'MMM dd')}{transaction.source === 'gpay_statement' && <span className="rounded bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary">From statement</span>}</p>
                       </div>
                       <div className="flex items-center gap-1">
-                        <span className={`text-sm font-semibold ${transaction.type === 'expense' ? 'text-destructive' : 'text-success'}`}>
-                          {transaction.type === 'expense' ? '-' : '+'}₹{transaction.amount.toFixed(2)}
+                        <span className={`text-sm font-semibold ${transaction.type === 'expense' ? 'text-destructive' : transaction.type === 'income' ? 'text-success' : 'text-muted-foreground'}`}>
+                          {transaction.type === 'expense' ? '-' : transaction.type === 'income' ? '+' : '↔'}₹{transaction.amount.toFixed(2)}
                         </span>
                         <Button variant="ghost" size="sm" onClick={() => setEditingTransaction(transaction.id)} className="h-7 w-7 p-0">
                           <Edit className="h-3 w-3" />

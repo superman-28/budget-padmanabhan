@@ -32,7 +32,7 @@ export const TransactionEditForm = ({
   );
   const [description, setDescription] = useState(transaction.description);
   const [date, setDate] = useState(format(new Date(transaction.date), 'yyyy-MM-dd'));
-  const [type, setType] = useState<'expense' | 'income'>(transaction.type);
+  const [type, setType] = useState<'expense' | 'income' | 'transfer'>(transaction.type);
   const [paidBy, setPaidBy] = useState(transaction.paidBy || '');
   const [eventId, setEventId] = useState<string>(transaction.eventId || '');
   const { toast } = useToast();
@@ -113,6 +113,14 @@ export const TransactionEditForm = ({
           size="sm"
         >
           Income
+        </Button>
+        <Button
+          type="button"
+          variant={type === 'transfer' ? 'default' : 'outline'}
+          onClick={() => setType('transfer')}
+          size="sm"
+        >
+          Transfer
         </Button>
       </div>
 
