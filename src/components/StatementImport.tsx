@@ -293,7 +293,7 @@ export const StatementImport = ({ transactions, categories, userEmail, onImport 
             {parsed && (
               <Button onClick={handleImport} disabled={importing || selectedEntries.length === 0 || (needsTotalsConfirmation && !confirmedTotalsWarning)}>
                 {importing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Import {newEntries.length} transactions
+                Import {selectedEntries.length} transactions
               </Button>
             )}
           </DialogFooter>
