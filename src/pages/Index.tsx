@@ -105,6 +105,9 @@ const Index = () => {
       if (fullTxn.sharing !== 'private') {
         await userLinkingService.shareTransactionWithLinkedUsers(user.uid, user.email!, fullTxn);
         await eventService.syncTransactionForRecipients(user.uid, user.email!, fullTxn);
+        if (fullTxn.eventId) {
+          await eventService.syncEventTransactionsForRecipients(user.uid, user.email!, fullTxn.eventId);
+        }
       }
 
     } catch (error) {
