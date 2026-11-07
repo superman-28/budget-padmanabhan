@@ -112,7 +112,7 @@ export const TransactionList = ({
                           📍{transaction.eventName}
                         </span>
                       )}
-                      {transaction.source === 'gpay_statement' && (
+                      {(transaction.source === 'gpay_statement' || transaction.source === 'bank_csv') && (
                         <span className="rounded bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary">From statement</span>
                       )}
                     </div>

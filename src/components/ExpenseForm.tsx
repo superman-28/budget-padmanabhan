@@ -40,6 +40,7 @@ export const ExpenseForm = ({
   const [paidBy, setPaidBy] = useState(user?.email || '');
   const [paymentMode, setPaymentMode] = useState('');
   const [eventId, setEventId] = useState('');
+  const [shareWithLinkedUsers, setShareWithLinkedUsers] = useState(true);
   const [showCategoryManager, setShowCategoryManager] = useState(false);
   const { toast } = useToast();
 
@@ -75,6 +76,7 @@ export const ExpenseForm = ({
       date: selectedDateObj.toISOString(),
       type,
       paidBy: paidBy.trim(),
+      sharing: shareWithLinkedUsers ? 'linked' : 'private',
     };
     if (paymentMode) newTxn.paymentMode = paymentMode;
     if (selectedEvent) {
@@ -90,6 +92,7 @@ export const ExpenseForm = ({
     setPaidBy(user?.email || '');
     setPaymentMode('');
     setEventId('');
+    setShareWithLinkedUsers(true);
     
     toast({
       title: "Transaction Added",
@@ -259,6 +262,11 @@ export const ExpenseForm = ({
             <Label htmlFor="description" className="text-xs">Description <span className="text-muted-foreground">(Optional)</span></Label>
             <Input id="description" placeholder="What was this for?" value={description} onChange={(e) => setDescription(e.target.value)} />
           </div>
+
+          <label className="flex items-start gap-2 rounded-md border bg-background/70 p-3 text-sm">
+            <input type="checkbox" checked={shareWithLinkedUsers} onChange={(event) => setShareWithLinkedUsers(event.target.checked)} className="mt-0.5" />
+            <span><span className="font-medium">Share with linked members</span><span className="block text-xs text-muted-foreground">Includes category links and shared events. Clear this for a private transaction.</span></span>
+          </label>
 
           <Button type="submit" className="w-full">
             <Plus className="h-4 w-4 mr-2" />

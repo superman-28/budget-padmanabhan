@@ -12,6 +12,7 @@ import { loanService } from '@/services/loanService';
 import { getEMISchedule } from '@/utils/loanCalculations';
 import type { Transaction } from '@/pages/Index';
 import type { Loan } from '@/types/loan';
+import type { RecurringBill } from '@/types/recurringBill';
 
 interface MonthlyPlanProps {
   userId: string;
@@ -71,6 +72,7 @@ export const MonthlyPlan = ({ userId, transactions, selectedDate }: MonthlyPlanP
   const monthKey = format(selectedDate, 'yyyy-MM');
   const [budget, setBudget] = useState<number | null>(null);
   const [loans, setLoans] = useState<Loan[]>([]);
+  const [bills, setBills] = useState<RecurringBill[]>([]);
   const [budgetLoading, setBudgetLoading] = useState(true);
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState('');
@@ -90,6 +92,7 @@ export const MonthlyPlan = ({ userId, transactions, selectedDate }: MonthlyPlanP
   }, [userId, monthKey]);
 
   useEffect(() => loanService.subscribeToLoans(userId, setLoans), [userId]);
+  useEffect(() => firestoreService.subscribeToRecurringBills(userId, setBills), [userId]);
 
   const monthTotals = useMemo(() => {
     const interval = { start: startOfMonth(selectedDate), end: endOfMonth(selectedDate) };
@@ -108,7 +111,21 @@ export const MonthlyPlan = ({ userId, transactions, selectedDate }: MonthlyPlanP
   }, [transactions, selectedDate]);
 
   const commitments = useMemo(() => getMonthCommitments(loans, monthKey), [loans, monthKey]);
-  const totalCommitments = commitments.reduce((sum, commitment) => sum + commitment.amount, 0);
+  const billCommitments = useMemo(() => {
+    const year = selectedDate.getFullYear();
+    const month = selectedDate.getMonth();
+    const lastDay = new Date(year, month + 1, 0).getDate();
+    return bills.map((bill) => ({
+      id: 'bill-' + bill.id,
+      name: bill.name,
+      date: format(new Date(year, month, Math.min(bill.dueDay, lastDay)), 'yyyy-MM-dd'),
+      amount: bill.amount,
+      label: 'Bill',
+    })).sort((a, b) => a.date.localeCompare(b.date));
+  }, [bills, selectedDate]);
+  const allCommitments = [...commitments, ...billCommitments].sort((a, b) => a.date.localeCompare(b.date));
+  const totalCommitments = allCommitments.reduce((sum, commitment) => sum + commitment.amount, 0);
+  const outlook = monthTotals.received - monthTotals.spent - totalCommitments;
   const remaining = budget === null ? null : budget - monthTotals.spent;
   const progress = budget && budget > 0 ? Math.min((monthTotals.spent / budget) * 100, 100) : 0;
 
@@ -232,7 +249,7 @@ export const MonthlyPlan = ({ userId, transactions, selectedDate }: MonthlyPlanP
                 />
               </div>
               <p className="text-xs text-muted-foreground">
-                Budget remaining reflects recorded spending. Scheduled loan payments are shown separately below.
+                Cash-flow outlook subtracts upcoming bills and loan payments from recorded income after recorded spending. Planned commitments are not counted as recorded expenses.
               </p>
             </div>
           </>
@@ -243,17 +260,18 @@ export const MonthlyPlan = ({ userId, transactions, selectedDate }: MonthlyPlanP
             <div className="mb-2 flex items-center justify-between gap-2">
               <h3 className="flex items-center gap-2 text-sm font-semibold">
                 <CalendarClock className="h-4 w-4 text-primary" />
-                Loan payments due in {format(selectedDate, 'MMMM')}
+                Upcoming bills and loan payments · {format(selectedDate, 'MMMM')}
               </h3>
               {totalCommitments > 0 && <span className="text-sm font-semibold">{formatCurrency(totalCommitments)}</span>}
             </div>
-            {commitments.length === 0 ? (
+            <p className={'mb-2 rounded-md px-3 py-2 text-sm font-medium ' + (outlook < 0 ? 'bg-destructive/10 text-destructive' : 'bg-pastel-green')}>Cash-flow outlook: {formatCurrency(outlook)} after upcoming commitments</p>
+            {allCommitments.length === 0 ? (
               <p className="text-xs text-muted-foreground">
-                No scheduled loan payments for this month. Add repayment dates in <Link to="/loans" className="text-primary underline">Loans</Link> to see them here.
+                No recurring bills or loan payments are scheduled this month. Add bills above or repayment dates in <Link to="/loans" className="text-primary underline">Loans</Link>.
               </p>
             ) : (
               <div className="space-y-1.5">
-                {commitments.map((commitment) => (
+                {allCommitments.map((commitment) => (
                   <div key={commitment.id} className="flex items-center justify-between gap-3 rounded-md bg-muted/40 px-3 py-2 text-sm">
                     <div className="min-w-0">
                       <span className="font-medium">{commitment.name}</span>

@@ -14,6 +14,8 @@ import { userLinkingService } from '@/services/userLinkingService';
 import { eventService } from '@/services/eventService';
 import { TripEvent } from '@/types/event';
 import { StatementImport } from '@/components/StatementImport';
+import { BankCsvImport } from '@/components/BankCsvImport';
+import { RecurringBills } from '@/components/RecurringBills';
 import { MonthlyPlan } from '@/components/MonthlyPlan';
 
 export interface Transaction {
@@ -27,7 +29,8 @@ export interface Transaction {
   paymentMode?: string;
   eventId?: string;
   eventName?: string;
-  source?: 'gpay_statement';
+  source?: 'gpay_statement' | 'bank_csv';
+  sharing?: 'private' | 'linked';
   sourceTransactionId?: string;
 }
 
@@ -99,13 +102,14 @@ const Index = () => {
       const transactionWithPaidBy = { ...transaction, paidBy: transaction.paidBy || user.email! };
       const transactionId = await firestoreService.addTransaction(user.uid, transactionWithPaidBy);
       const fullTxn = { ...transactionWithPaidBy, id: transactionId } as Transaction;
-      await userLinkingService.shareTransactionWithLinkedUsers(
-        user.uid, user.email!, fullTxn
-      );
-      await eventService.syncTransactionForRecipients(user.uid, user.email!, fullTxn);
-      if (fullTxn.eventId) {
-        await eventService.syncEventTransactionsForRecipients(user.uid, user.email!, fullTxn.eventId);
+      if (fullTxn.sharing !== 'private') {
+        await userLinkingService.shareTransactionWithLinkedUsers(user.uid, user.email!, fullTxn);
+        await eventService.syncTransactionForRecipients(user.uid, user.email!, fullTxn);
+        if (fullTxn.eventId) {
+          await eventService.syncEventTransactionsForRecipients(user.uid, user.email!, fullTxn.eventId);
+        }
       }
+
     } catch (error) {
       console.error('Error adding transaction:', error);
     }
@@ -124,12 +128,23 @@ const Index = () => {
     if (!user) return;
     try {
       const oldEventId = transactions.find((t) => t.id === transaction.id)?.eventId;
+      const previousTransaction = transactions.find((item) => item.id === transaction.id);
       await firestoreService.updateTransaction(user.uid, transaction);
-      await userLinkingService.updateSharedTransaction(user.uid, user.email!, transaction);
-      await eventService.syncTransactionForRecipients(user.uid, user.email!, transaction);
+      if (transaction.sharing === 'private') {
+        await userLinkingService.deleteSharedTransaction(user.uid, transaction.id);
+        await eventService.removeTransactionForRecipients(user.uid, transaction.id);
+      } else if (previousTransaction?.sharing === 'private') {
+        await userLinkingService.shareTransactionWithLinkedUsers(user.uid, user.email!, transaction);
+        await eventService.syncTransactionForRecipients(user.uid, user.email!, transaction);
+      } else {
+        await userLinkingService.updateSharedTransaction(user.uid, user.email!, transaction);
+        await eventService.syncTransactionForRecipients(user.uid, user.email!, transaction);
+      }
       const eventIdsToSync = Array.from(new Set([oldEventId, transaction.eventId].filter(Boolean) as string[]));
-      for (const eventId of eventIdsToSync) {
-        await eventService.syncEventTransactionsForRecipients(user.uid, user.email!, eventId);
+      if (transaction.sharing !== 'private') {
+        for (const eventId of eventIdsToSync) {
+          await eventService.syncEventTransactionsForRecipients(user.uid, user.email!, eventId);
+        }
       }
     } catch (error) {
       console.error('Error updating transaction:', error);
@@ -201,7 +216,8 @@ const Index = () => {
         <DashboardHeader selectedDate={selectedDate} onDateChange={setSelectedDate} displayName={user?.displayName} />
         <QuickStats transactions={transactions} selectedDate={selectedDate} />
         <MonthlyPlan userId={user!.uid} transactions={transactions} selectedDate={selectedDate} />
-        <StatementImport transactions={transactions} categories={categories} userEmail={user?.email || ''} onImport={addImportedTransactions} />
+        <RecurringBills userId={user!.uid} categories={categories} />
+        <div className="grid gap-4 md:grid-cols-2"><StatementImport transactions={transactions} categories={categories} userEmail={user?.email || ''} onImport={addImportedTransactions} /><BankCsvImport transactions={transactions} categories={categories} userEmail={user?.email || ''} onImport={addImportedTransactions} /></div>
         
         <div className="grid grid-cols-1 gap-5 xl:grid-cols-3">
           <div className="space-y-5 xl:col-span-2">

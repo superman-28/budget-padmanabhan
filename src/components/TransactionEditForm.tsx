@@ -35,6 +35,7 @@ export const TransactionEditForm = ({
   const [type, setType] = useState<'expense' | 'income' | 'transfer'>(transaction.type);
   const [paidBy, setPaidBy] = useState(transaction.paidBy || '');
   const [eventId, setEventId] = useState<string>(transaction.eventId || '');
+  const [shareWithLinkedUsers, setShareWithLinkedUsers] = useState(transaction.sharing !== 'private');
   const { toast } = useToast();
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -70,6 +71,7 @@ export const TransactionEditForm = ({
       paidBy: paidBy.trim(),
       eventId: selectedEvent?.id,
       eventName: selectedEvent?.name,
+      sharing: shareWithLinkedUsers ? 'linked' : 'private',
     };
 
     onSave(updatedTransaction);
@@ -171,6 +173,11 @@ export const TransactionEditForm = ({
           />
         </div>
       </div>
+
+      <label className="flex items-start gap-2 rounded-md border p-3 text-sm">
+        <input type="checkbox" checked={shareWithLinkedUsers} onChange={(event) => setShareWithLinkedUsers(event.target.checked)} className="mt-0.5" />
+        <span><span className="font-medium">Share with linked members</span><span className="block text-xs text-muted-foreground">Includes category links and shared events.</span></span>
+      </label>
 
       {/* Categories */}
       <div className="space-y-2">

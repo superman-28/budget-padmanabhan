@@ -1,10 +1,12 @@
 import { useMemo, useRef, useState } from 'react';
-import { FileText, FileUp, Loader2, ShieldCheck, Plus, Minus } from 'lucide-react';
+import { FileText, FileUp, Loader2, ShieldCheck, Plus, Trash2, ChevronDown } from 'lucide-react';
 import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useToast } from '@/hooks/use-toast';
 import type { Transaction } from '@/pages/Index';
 import type { GooglePayStatementTotals, GooglePayStatementTransaction } from '@/utils/gpayStatementParser';
@@ -50,7 +52,7 @@ export const StatementImport = ({ transactions, categories, userEmail, onImport 
     summaryTotals: GooglePayStatementTotals | null;
     parsedTotals: GooglePayStatementTotals;
   } | null>(null);
-  const [categoryById, setCategoryById] = useState<Record<string, string>>({});
+  const [categoryById, setCategoryById] = useState<Record<string, string[]>>({});
   const [descriptionById, setDescriptionById] = useState<Record<string, string>>({});
   const [confirmedTotalsWarning, setConfirmedTotalsWarning] = useState(false);
   const [includedById, setIncludedById] = useState<Record<string, boolean>>({});
@@ -95,7 +97,7 @@ export const StatementImport = ({ transactions, categories, userEmail, onImport 
         parsedTotals: result.parsedTotals,
       });
       setCategoryById(Object.fromEntries(
-        result.transactions.map((entry) => [entry.transactionId, suggestCategory(entry.description, categories)])
+        result.transactions.map((entry) => [entry.transactionId, [suggestCategory(entry.description, categories)]])
       ));
       setDescriptionById(Object.fromEntries(
         result.transactions.map((entry) => [entry.transactionId, entry.description])
@@ -114,13 +116,14 @@ export const StatementImport = ({ transactions, categories, userEmail, onImport 
     try {
       const rows: Omit<Transaction, 'id'>[] = selectedEntries.map((entry) => ({
         amount: entry.amount,
-        category: categoryById[entry.transactionId] || 'uncategorized',
+        category: (categoryById[entry.transactionId] ?? ['uncategorized']).join(',') || 'uncategorized',
         description: descriptionById[entry.transactionId] ?? entry.description,
         date: entry.date,
         type: entry.type,
         paidBy: userEmail,
         paymentMode: 'Google Pay (UPI)',
         source: 'gpay_statement',
+        sharing: 'private',
         sourceTransactionId: entry.transactionId,
       }));
       await onImport(rows);
@@ -165,7 +168,7 @@ export const StatementImport = ({ transactions, categories, userEmail, onImport 
       <Dialog open={open} onOpenChange={(nextOpen) => {
         if (!parsing && !importing) setOpen(nextOpen);
       }}>
-        <DialogContent className="max-w-4xl">
+        <DialogContent className="w-[calc(100vw-1rem)] p-3 sm:max-w-4xl sm:p-6 max-h-[90vh] overflow-y-auto overflow-x-hidden">
           <DialogHeader>
             <DialogTitle>Review Google Pay statement</DialogTitle>
             <DialogDescription>
@@ -221,16 +224,16 @@ export const StatementImport = ({ transactions, categories, userEmail, onImport 
               {parsed.entries.length === 0 ? (
                 <p className="rounded-md border p-4 text-sm text-muted-foreground">No transactions are selected. Use Add to import a dimmed row.</p>
               ) : (
-                <div className="max-h-[55vh] overflow-auto rounded-lg border">
-                  <table className="w-full min-w-[620px] text-sm">
+                <div className="max-h-[55vh] overflow-y-auto overflow-x-hidden rounded-lg border">
+                  <table className="w-full table-fixed text-xs sm:text-sm">
                     <thead className="sticky top-0 bg-muted text-left">
                       <tr>
-                        <th className="p-2">Date</th>
-                        <th className="p-2">Description</th>
-                        <th className="p-2">Type</th>
-                        <th className="p-2 text-right">Amount</th>
-                        <th className="p-2">Category</th>
-                        <th className="p-2">Import</th>
+                        <th className="w-[66px] p-1.5 sm:w-[150px] sm:p-2">Date</th>
+                        <th className="p-1.5 sm:p-2">Description</th>
+                        <th className="hidden w-[82px] p-2 sm:table-cell">Type</th>
+                        <th className="w-[68px] p-1.5 text-right sm:w-[100px] sm:p-2">Amount</th>
+                        <th className="w-[82px] p-1.5 sm:w-[145px] sm:p-2">Category</th>
+                        <th className="w-[38px] p-1 text-center sm:w-[66px] sm:p-2"><span className="hidden sm:inline">Import</span></th>
                       </tr>
                     </thead>
                     <tbody>
@@ -239,40 +242,55 @@ export const StatementImport = ({ transactions, categories, userEmail, onImport 
                         const duplicate = existingStatementIds.has(entry.transactionId);
                         return (
                         <tr key={entry.transactionId} className={'border-t ' + (!included ? 'bg-muted/50 text-muted-foreground opacity-60' : '')}>
-                          <td className="whitespace-nowrap p-2">{format(new Date(entry.date), 'dd MMM yyyy, h:mm a')}</td>
+                          <td className="whitespace-nowrap p-1.5 text-[10px] sm:p-2 sm:text-xs">{format(new Date(entry.date), 'dd MMM')}</td>
                           <td className="p-2">
                             <Label className="sr-only" htmlFor={'description-' + entry.transactionId}>Description</Label>
                             <Input
                               id={'description-' + entry.transactionId}
                               value={descriptionById[entry.transactionId] ?? entry.description}
                               onChange={(e) => setDescriptionById((current) => ({ ...current, [entry.transactionId]: e.target.value }))}
-                              className="min-w-[210px] max-w-[300px]"
+                              className="h-8 w-full min-w-0 px-2 text-xs sm:h-10 sm:px-3 sm:text-sm"
                             />
                           </td>
-                          <td className="p-2">{entry.selfTransfer ? 'Self transfer' : entry.type}</td>
-                          <td className="whitespace-nowrap p-2 text-right font-medium">₹{entry.amount.toFixed(2)}</td>
-                          <td className="p-2">
-                            <Label className="sr-only" htmlFor={'category-' + entry.transactionId}>Category</Label>
-                            <select
-                              id={'category-' + entry.transactionId}
-                              value={categoryById[entry.transactionId] || 'uncategorized'}
-                              disabled={entry.selfTransfer}
-                              onChange={(e) => setCategoryById((current) => ({ ...current, [entry.transactionId]: e.target.value }))}
-                              className="w-36 rounded-md border bg-background px-2 py-1.5 text-xs"
-                            >
-                              <option value="uncategorized">Uncategorized</option>
-                              {categories.map((category) => (
-                                <option key={category.value} value={category.value}>{category.icon} {category.label}</option>
-                              ))}
-                            </select>
+                          <td className="hidden p-2 capitalize sm:table-cell">{entry.selfTransfer ? 'Self transfer' : entry.type}</td>
+                          <td className="whitespace-nowrap p-1.5 text-right text-[10px] font-medium sm:p-2 sm:text-sm">₹{entry.amount.toFixed(2)}</td>
+                          
+                          <td className="p-1 sm:p-2">
+                            <Label className="sr-only">Categories</Label>
+                            <Popover>
+                              <PopoverTrigger asChild>
+                                <Button type="button" variant="outline" disabled={entry.selfTransfer} aria-label="Choose categories" className="h-8 w-full min-w-0 justify-between gap-1 px-1.5 text-[10px] font-normal sm:px-2 sm:text-xs">
+                                  <span className="truncate">{(categoryById[entry.transactionId] ?? ['uncategorized']).length} selected</span>
+                                  <ChevronDown className="h-3 w-3 shrink-0" />
+                                </Button>
+                              </PopoverTrigger>
+                              <PopoverContent align="end" className="w-56 p-2">
+                                <div className="max-h-56 space-y-1 overflow-y-auto">
+                                  {[{ value: 'uncategorized', label: 'Uncategorized', icon: '🏷️' }, ...categories.filter((item) => item.value !== 'uncategorized')].map((category) => {
+                                    const selected = categoryById[entry.transactionId] ?? ['uncategorized'];
+                                    return <label key={category.value} className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-accent">
+                                      <Checkbox checked={selected.includes(category.value)} onCheckedChange={() => setCategoryById((current) => {
+                                        const values = current[entry.transactionId] ?? ['uncategorized'];
+                                        const next = category.value === 'uncategorized'
+                                          ? (values.includes('uncategorized') ? [] : ['uncategorized'])
+                                          : (values.includes(category.value)
+                                            ? values.filter((value) => value !== category.value)
+                                            : [...values.filter((value) => value !== 'uncategorized'), category.value]);
+                                        return { ...current, [entry.transactionId]: next };
+                                      })} />
+                                      <span>{category.icon} {category.label}</span>
+                                    </label>;
+                                  })}
+                                </div>
+                              </PopoverContent>
+                            </Popover>
                           </td>
-                          <td className="p-2">
-                            <div className="flex min-w-32 flex-col gap-1">
-                              {!included && <span className="text-[10px] leading-tight">{entry.selfTransfer ? 'Self transfer' : ''}{entry.selfTransfer && duplicate ? ' · ' : ''}{duplicate ? 'Already imported' : ''}</span>}
-                              <Button type="button" size="sm" variant={included ? 'outline' : 'default'} onClick={() => setIncludedById((current) => ({ ...current, [entry.transactionId]: !included }))}>
-                                {included ? <><Minus className="mr-1 h-3 w-3" />Remove</> : <><Plus className="mr-1 h-3 w-3" />Add</>}
-                              </Button>
-                            </div>
+                          
+                          <td className="p-1 text-center sm:p-2">
+                            {!included && <span className="hidden text-[10px] sm:block">{entry.selfTransfer ? 'Self transfer' : ''}{entry.selfTransfer && duplicate ? ' · ' : ''}{duplicate ? 'Already imported' : ''}</span>}
+                            <Button type="button" size="icon" variant="ghost" aria-label={included ? 'Remove transaction from import' : 'Add transaction to import'} title={included ? 'Remove from import' : (entry.selfTransfer ? 'Add self transfer' : duplicate ? 'Add duplicate' : 'Add to import')} className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => setIncludedById((current) => ({ ...current, [entry.transactionId]: !included }))}>
+                              {included ? <Trash2 className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+                            </Button>
                           </td>
                         </tr>
                       );})}
