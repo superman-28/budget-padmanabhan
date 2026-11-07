@@ -10,7 +10,8 @@ import {
   orderBy, 
   onSnapshot,
   where,
-  Timestamp 
+  Timestamp,
+  setDoc,
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Transaction } from '@/pages/Index';
@@ -90,6 +91,30 @@ export const firestoreService = {
         callback([]);
       }
     );
+  },
+
+  // Monthly budget plans
+  subscribeToMonthlyBudget(userId: string, monthKey: string, callback: (amount: number | null) => void) {
+    const budgetRef = doc(db, 'users', userId, 'monthlyBudgets', monthKey);
+    return onSnapshot(
+      budgetRef,
+      (snapshot) => {
+        const amount = snapshot.exists() ? Number(snapshot.data().amount) : null;
+        callback(amount !== null && Number.isFinite(amount) ? amount : null);
+      },
+      (error) => {
+        console.error('FirestoreService: Error in monthly budget subscription:', error);
+        callback(null);
+      }
+    );
+  },
+
+  async saveMonthlyBudget(userId: string, monthKey: string, amount: number) {
+    if (!Number.isFinite(amount) || amount <= 0) {
+      throw new Error('Monthly budget must be greater than zero.');
+    }
+    const budgetRef = doc(db, 'users', userId, 'monthlyBudgets', monthKey);
+    await setDoc(budgetRef, { amount, updatedAt: Timestamp.now() });
   },
 
   // Categories
