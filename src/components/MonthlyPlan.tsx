@@ -176,11 +176,9 @@ export const MonthlyPlan = ({ userId, transactions, selectedDate }: MonthlyPlanP
                 <Check className="mr-1.5 h-4 w-4" />
                 {saving ? 'Saving…' : 'Save plan'}
               </Button>
-              {budget !== null && (
-                <Button variant="ghost" onClick={() => { setEditing(false); setError(''); }} disabled={saving}>
-                  Cancel
-                </Button>
-              )}
+              <Button variant="ghost" onClick={() => { setEditing(false); setError(''); setDraft(budget === null ? '' : String(budget)); }} disabled={saving}>
+                Cancel
+              </Button>
             </div>
             {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
           </div>

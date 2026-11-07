@@ -12,6 +12,11 @@ export interface GooglePayStatementTransaction {
   selfTransfer: boolean;
 }
 
+export interface GooglePayStatementTotals {
+  sent: number;
+  received: number;
+}
+
 const MONTHS: Record<string, number> = {
   jan: 0, feb: 1, mar: 2, apr: 3, may: 4, jun: 5,
   jul: 6, aug: 7, sep: 8, oct: 9, nov: 10, dec: 11,
@@ -33,6 +38,8 @@ function parseStatementDate(value: string): Date | null {
 export async function parseGooglePayStatement(file: File): Promise<{
   transactions: GooglePayStatementTransaction[];
   selfTransfersSkipped: number;
+  summaryTotals: GooglePayStatementTotals | null;
+  parsedTotals: GooglePayStatementTotals;
 }> {
   if (file.size > 20 * 1024 * 1024) {
     throw new Error('Choose a PDF smaller than 20 MB.');
@@ -53,6 +60,7 @@ export async function parseGooglePayStatement(file: File): Promise<{
     const seenIds = new Set<string>();
     let selfTransfersSkipped = 0;
     let totalStatementRows = 0;
+    let summaryTotals: GooglePayStatementTotals | null = null;
 
     for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber += 1) {
       const page = await pdf.getPage(pageNumber);
@@ -65,6 +73,16 @@ export async function parseGooglePayStatement(file: File): Promise<{
 
       if (pageNumber === 1 && !/transaction\s+statement/i.test(text)) {
         throw new Error('This does not look like a Google Pay transaction statement.');
+      }
+
+      if (!summaryTotals) {
+        const totalsMatch = text.match(/\bSent\s+₹\s*([\d,]+(?:\.\d{1,2})?)\s+Received\s+₹\s*([\d,]+(?:\.\d{1,2})?)/i);
+        if (totalsMatch) {
+          summaryTotals = {
+            sent: Number(totalsMatch[1].replace(/,/g, '')),
+            received: Number(totalsMatch[2].replace(/,/g, '')),
+          };
+        }
       }
 
       totalStatementRows += (text.match(/UPI\s+Transaction\s+ID\s*:/gi) || []).length;
@@ -102,7 +120,16 @@ export async function parseGooglePayStatement(file: File): Promise<{
     if (transactions.length + selfTransfersSkipped !== totalStatementRows) {
       throw new Error('Some statement rows could not be read accurately. No transactions were imported.');
     }
-    return { transactions, selfTransfersSkipped };
+    const parsedTotals = transactions.reduce<GooglePayStatementTotals>(
+      (totals, transaction) => {
+        if (transaction.type === 'expense') totals.sent += transaction.amount;
+        else totals.received += transaction.amount;
+        return totals;
+      },
+      { sent: 0, received: 0 }
+    );
+
+    return { transactions, selfTransfersSkipped, summaryTotals, parsedTotals };
   } finally {
     await pdf.destroy();
   }

@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import type { Transaction } from '@/pages/Index';
-import type { GooglePayStatementTransaction } from '@/utils/gpayStatementParser';
+import type { GooglePayStatementTotals, GooglePayStatementTransaction } from '@/utils/gpayStatementParser';
 
 type Category = { value: string; label: string; icon: string; color: string };
 
@@ -47,9 +47,12 @@ export const StatementImport = ({ transactions, categories, userEmail, onImport 
     entries: GooglePayStatementTransaction[];
     selfTransfersSkipped: number;
     fileName: string;
+    summaryTotals: GooglePayStatementTotals | null;
+    parsedTotals: GooglePayStatementTotals;
   } | null>(null);
   const [categoryById, setCategoryById] = useState<Record<string, string>>({});
   const [descriptionById, setDescriptionById] = useState<Record<string, string>>({});
+  const [confirmedTotalsWarning, setConfirmedTotalsWarning] = useState(false);
 
   const existingStatementIds = useMemo(
     () => new Set(transactions.map((transaction) => transaction.sourceTransactionId).filter(Boolean)),
@@ -57,6 +60,10 @@ export const StatementImport = ({ transactions, categories, userEmail, onImport 
   );
   const duplicateCount = parsed?.entries.filter((entry) => existingStatementIds.has(entry.transactionId)).length || 0;
   const newEntries = parsed?.entries.filter((entry) => !existingStatementIds.has(entry.transactionId)) || [];
+  const totalsMatch = Boolean(parsed?.summaryTotals &&
+    Math.abs(parsed.summaryTotals.sent - parsed.parsedTotals.sent) < 0.01 &&
+    Math.abs(parsed.summaryTotals.received - parsed.parsedTotals.received) < 0.01);
+  const needsTotalsConfirmation = Boolean(parsed && !totalsMatch);
 
   const handleFile = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -67,6 +74,7 @@ export const StatementImport = ({ transactions, categories, userEmail, onImport 
     setParsed(null);
     setCategoryById({});
     setDescriptionById({});
+    setConfirmedTotalsWarning(false);
     setParsing(true);
     setOpen(true);
     try {
@@ -75,7 +83,13 @@ export const StatementImport = ({ transactions, categories, userEmail, onImport 
       }
       const { parseGooglePayStatement } = await import('@/utils/gpayStatementParser');
       const result = await parseGooglePayStatement(file);
-      setParsed({ entries: result.transactions, selfTransfersSkipped: result.selfTransfersSkipped, fileName: file.name });
+      setParsed({
+        entries: result.transactions,
+        selfTransfersSkipped: result.selfTransfersSkipped,
+        fileName: file.name,
+        summaryTotals: result.summaryTotals,
+        parsedTotals: result.parsedTotals,
+      });
       setCategoryById(Object.fromEntries(
         result.transactions.map((entry) => [entry.transactionId, suggestCategory(entry.description, categories)])
       ));
@@ -173,6 +187,33 @@ export const StatementImport = ({ transactions, categories, userEmail, onImport 
                 {parsed.selfTransfersSkipped > 0 && <span>{parsed.selfTransfersSkipped} self-transfers skipped</span>}
               </div>
 
+              <div className={'rounded-lg border p-3 text-xs ' + (totalsMatch ? 'border-success/30 bg-success/5' : 'border-destructive/30 bg-destructive/5')}>
+                <p role="status" className={totalsMatch ? 'font-medium text-success' : 'font-medium text-destructive'}>
+                  {totalsMatch
+                    ? 'Extracted totals match the statement summary.'
+                    : parsed.summaryTotals
+                      ? 'Extracted totals do not match the statement summary. Review the rows before importing.'
+                      : 'Statement summary totals could not be read. Review the rows before importing.'}
+                </p>
+                <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-muted-foreground">
+                  <span>Statement sent: {parsed.summaryTotals ? '₹' + parsed.summaryTotals.sent.toFixed(2) : 'Unavailable'}</span>
+                  <span>Extracted sent: ₹{parsed.parsedTotals.sent.toFixed(2)}</span>
+                  <span>Statement received: {parsed.summaryTotals ? '₹' + parsed.summaryTotals.received.toFixed(2) : 'Unavailable'}</span>
+                  <span>Extracted received: ₹{parsed.parsedTotals.received.toFixed(2)}</span>
+                </div>
+              </div>
+              {needsTotalsConfirmation && newEntries.length > 0 && (
+                <label className="flex cursor-pointer items-start gap-2 rounded-md border p-3 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={confirmedTotalsWarning}
+                    onChange={(event) => setConfirmedTotalsWarning(event.target.checked)}
+                    className="mt-0.5"
+                  />
+                  <span>I reviewed the extracted transactions and want to import them despite the totals check.</span>
+                </label>
+              )}
+
               {newEntries.length === 0 ? (
                 <p className="rounded-md border p-4 text-sm text-muted-foreground">Every transaction in this statement has already been imported.</p>
               ) : (
@@ -233,7 +274,7 @@ export const StatementImport = ({ transactions, categories, userEmail, onImport 
           <DialogFooter>
             <Button variant="outline" onClick={() => setOpen(false)} disabled={parsing || importing}>Cancel</Button>
             {parsed && (
-              <Button onClick={handleImport} disabled={importing || newEntries.length === 0}>
+              <Button onClick={handleImport} disabled={importing || newEntries.length === 0 || (needsTotalsConfirmation && !confirmedTotalsWarning)}>
                 {importing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Import {newEntries.length} transactions
               </Button>
