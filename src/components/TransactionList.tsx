@@ -119,8 +119,8 @@ export const TransactionList = ({
                   </div>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <p className={`text-sm font-semibold ${transaction.type === 'expense' ? 'text-destructive' : 'text-success'}`}>
-                    {transaction.type === 'expense' ? '-' : '+'}₹{transaction.amount.toFixed(2)}
+                  <p className={`text-sm font-semibold ${transaction.type === 'expense' ? 'text-destructive' : transaction.type === 'income' ? 'text-success' : 'text-muted-foreground'}`}>
+                    {transaction.type === 'expense' ? '-' : transaction.type === 'income' ? '+' : '↔'}₹{transaction.amount.toFixed(2)}
                   </p>
                   <Button variant="ghost" size="sm" onClick={() => onDeleteTransaction(transaction.id)}
                     className="opacity-0 group-hover:opacity-100 transition-opacity text-destructive hover:text-destructive h-7 w-7 p-0">

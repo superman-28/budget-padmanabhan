@@ -22,7 +22,7 @@ export interface Transaction {
   category: string;
   description: string;
   date: string;
-  type: 'expense' | 'income';
+  type: 'expense' | 'income' | 'transfer';
   paidBy: string;
   paymentMode?: string;
   eventId?: string;

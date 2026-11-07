@@ -8,7 +8,7 @@ export interface GooglePayStatementTransaction {
   description: string;
   date: string;
   amount: number;
-  type: 'expense' | 'income';
+  type: 'expense' | 'income' | 'transfer';
   selfTransfer: boolean;
 }
 
@@ -94,21 +94,19 @@ export async function parseGooglePayStatement(file: File): Promise<{
         if (!date || !Number.isFinite(amount) || amount <= 0 || seenIds.has(transactionId)) continue;
         seenIds.add(transactionId);
 
-        if (/^Self transfer to$/i.test(action)) {
-          selfTransfersSkipped += 1;
-          continue;
-        }
+        const selfTransfer = /^Self transfer to$/i.test(action);
+        if (selfTransfer) selfTransfersSkipped += 1;
 
         const counterparty = merchantText.replace(/\s+/g, ' ').trim();
         transactions.push({
           transactionId,
-          description: /^Received from$/i.test(action)
+          description: selfTransfer ? 'Self transfer to ' + counterparty : /^Received from$/i.test(action)
             ? 'Received from ' + counterparty
             : 'Paid to ' + counterparty,
           date: date.toISOString(),
           amount,
-          type: /^Received from$/i.test(action) ? 'income' : 'expense',
-          selfTransfer: false,
+          type: selfTransfer ? 'transfer' : /^Received from$/i.test(action) ? 'income' : 'expense',
+          selfTransfer,
         });
       }
       page.cleanup();
@@ -117,13 +115,13 @@ export async function parseGooglePayStatement(file: File): Promise<{
     if (totalStatementRows === 0) {
       throw new Error('No Google Pay transactions were found. Use a downloaded, text-based PDF statement.');
     }
-    if (transactions.length + selfTransfersSkipped !== totalStatementRows) {
+    if (transactions.length !== totalStatementRows) {
       throw new Error('Some statement rows could not be read accurately. No transactions were imported.');
     }
     const parsedTotals = transactions.reduce<GooglePayStatementTotals>(
       (totals, transaction) => {
         if (transaction.type === 'expense') totals.sent += transaction.amount;
-        else totals.received += transaction.amount;
+        else if (transaction.type === 'income') totals.received += transaction.amount;
         return totals;
       },
       { sent: 0, received: 0 }
