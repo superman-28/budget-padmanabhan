@@ -14,6 +14,7 @@ import { userLinkingService } from '@/services/userLinkingService';
 import { eventService } from '@/services/eventService';
 import { TripEvent } from '@/types/event';
 import { StatementImport } from '@/components/StatementImport';
+import { BankCsvImport } from '@/components/BankCsvImport';
 import { MonthlyPlan } from '@/components/MonthlyPlan';
 
 export interface Transaction {
@@ -27,7 +28,7 @@ export interface Transaction {
   paymentMode?: string;
   eventId?: string;
   eventName?: string;
-  source?: 'gpay_statement';
+  source?: 'gpay_statement' | 'bank_csv';
   sourceTransactionId?: string;
 }
 
@@ -201,7 +202,7 @@ const Index = () => {
         <DashboardHeader selectedDate={selectedDate} onDateChange={setSelectedDate} displayName={user?.displayName} />
         <QuickStats transactions={transactions} selectedDate={selectedDate} />
         <MonthlyPlan userId={user!.uid} transactions={transactions} selectedDate={selectedDate} />
-        <StatementImport transactions={transactions} categories={categories} userEmail={user?.email || ''} onImport={addImportedTransactions} />
+        <div className="grid gap-4 md:grid-cols-2"><StatementImport transactions={transactions} categories={categories} userEmail={user?.email || ''} onImport={addImportedTransactions} /><BankCsvImport transactions={transactions} categories={categories} userEmail={user?.email || ''} onImport={addImportedTransactions} /></div>
         
         <div className="grid grid-cols-1 gap-5 xl:grid-cols-3">
           <div className="space-y-5 xl:col-span-2">

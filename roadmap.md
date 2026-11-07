@@ -13,7 +13,7 @@ Help a household understand what it spent, what it still plans to spend, and whe
 
 ## Next product milestones
 
-- Import bank CSV statements and show transaction-count and total reconciliation before saving.
+- [x] Import bank CSV statements with editable review rows, possible-duplicate handling, and row-count/debit/credit reconciliation before saving.
 - Create a household space with member attribution, clear sharing controls, and private transactions.
 - Add recurring household bills and a cash-flow outlook that combines bills, loan payments, and income.
 

@@ -104,7 +104,7 @@ export const MonthlyTable = ({
                     <div className="flex justify-between items-start">
                       <div className="min-w-0 flex-1">
                         <p className="text-sm font-medium truncate">{transaction.description}</p>
-                        <p className="flex items-center gap-1.5 text-xs text-muted-foreground">{format(new Date(transaction.date), 'MMM dd')}{transaction.source === 'gpay_statement' && <span className="rounded bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary">From statement</span>}</p>
+                        <p className="flex items-center gap-1.5 text-xs text-muted-foreground">{format(new Date(transaction.date), 'MMM dd')}{(transaction.source === 'gpay_statement' || transaction.source === 'bank_csv') && <span className="rounded bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary">From statement</span>}</p>
                       </div>
                       <div className="flex items-center gap-1">
                         <span className={`text-sm font-semibold ${transaction.type === 'expense' ? 'text-destructive' : transaction.type === 'income' ? 'text-success' : 'text-muted-foreground'}`}>
@@ -163,7 +163,7 @@ export const MonthlyTable = ({
                         <TableCell className="py-2 max-w-[180px] truncate">
                           <div className="flex items-center gap-1.5 truncate">
                             <span className="truncate">{transaction.description}</span>
-                            {transaction.source === 'gpay_statement' && <span className="shrink-0 rounded bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary">From statement</span>}
+                            {(transaction.source === 'gpay_statement' || transaction.source === 'bank_csv') && <span className="shrink-0 rounded bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary">From statement</span>}
                             {transaction.eventName && (
                               <span className="inline-flex items-center gap-0.5 bg-pastel-indigo text-foreground px-1.5 py-0.5 rounded text-[10px] shrink-0">
                                 <MapPin className="h-2.5 w-2.5" />{transaction.eventName}
