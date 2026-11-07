@@ -1,10 +1,12 @@
 import { useMemo, useRef, useState } from 'react';
-import { FileSpreadsheet, FileUp, Loader2, Plus, Minus, ShieldCheck } from 'lucide-react';
+import { FileSpreadsheet, FileUp, Loader2, Plus, Trash2, ChevronDown, ShieldCheck } from 'lucide-react';
 import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useToast } from '@/hooks/use-toast';
 import type { Transaction } from '@/pages/Index';
 import { parseBankCsv, type BankCsvTransaction } from '@/utils/bankCsvParser';
@@ -43,7 +45,7 @@ export const BankCsvImport = ({ transactions, categories, userEmail, onImport }:
   const [error, setError] = useState('');
   const [entries, setEntries] = useState<BankCsvTransaction[]>([]);
   const [fileName, setFileName] = useState('');
-  const [categoryById, setCategoryById] = useState<Record<string, string>>({});
+  const [categoryById, setCategoryById] = useState<Record<string, string[]>>({});
   const [descriptionById, setDescriptionById] = useState<Record<string, string>>({});
   const [includedById, setIncludedById] = useState<Record<string, boolean>>({});
   const [confirmed, setConfirmed] = useState(false);
@@ -74,7 +76,7 @@ export const BankCsvImport = ({ transactions, categories, userEmail, onImport }:
       if (file.size > 10 * 1024 * 1024) throw new Error('Choose a CSV smaller than 10 MB.');
       const result = parseBankCsv(await file.text());
       setEntries(result.transactions);
-      setCategoryById(Object.fromEntries(result.transactions.map((entry) => [entry.transactionId, suggestCategory(entry.description, categories)])));
+      setCategoryById(Object.fromEntries(result.transactions.map((entry) => [entry.transactionId, [suggestCategory(entry.description, categories)]])));
       setDescriptionById(Object.fromEntries(result.transactions.map((entry) => [entry.transactionId, entry.description])));
       setIncludedById(Object.fromEntries(result.transactions.map((entry) => [entry.transactionId, !transactions.some((item) => item.sourceTransactionId === entry.transactionId)])));
     } catch (cause) {
@@ -91,7 +93,7 @@ export const BankCsvImport = ({ transactions, categories, userEmail, onImport }:
     try {
       const rows: Omit<Transaction, 'id'>[] = selected.map((entry) => ({
         amount: entry.amount,
-        category: categoryById[entry.transactionId] || 'uncategorized',
+        category: (categoryById[entry.transactionId] ?? ['uncategorized']).join(',') || 'uncategorized',
         description: descriptionById[entry.transactionId] ?? entry.description,
         date: entry.date,
         type: entry.type,
@@ -123,7 +125,7 @@ export const BankCsvImport = ({ transactions, categories, userEmail, onImport }:
     </div>
 
     <Dialog open={open} onOpenChange={(next) => { if (!busy) setOpen(next); }}>
-      <DialogContent className="max-w-5xl">
+      <DialogContent className="w-[calc(100vw-1rem)] p-3 sm:max-w-5xl sm:p-6 max-h-[90vh] overflow-y-auto overflow-x-hidden">
         <DialogHeader><DialogTitle>Review bank statement</DialogTitle><DialogDescription>{fileName} · parsed in this browser; the original file is not uploaded.</DialogDescription></DialogHeader>
         {busy && <div className="flex items-center gap-3 rounded-lg border p-4 text-sm"><Loader2 className="h-4 w-4 animate-spin" />Processing statement…</div>}
         {error && <p role="alert" className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">{error}</p>}
@@ -138,19 +140,43 @@ export const BankCsvImport = ({ transactions, categories, userEmail, onImport }:
             <div className="mt-1 flex flex-wrap gap-x-5 text-muted-foreground"><span>Debits: ₹{totals.debits.toFixed(2)}</span><span>Credits: ₹{totals.credits.toFixed(2)}</span><span>Net: ₹{(totals.credits - totals.debits).toFixed(2)}</span></div>
             <p className="mt-1 text-xs text-muted-foreground">CSV exports often do not include a separate statement summary. Compare these totals and row count with your bank statement before import.</p>
           </div>
-          <div className="max-h-[48vh] overflow-auto rounded-lg border">
-            <table className="w-full min-w-[760px] text-sm">
-              <thead className="sticky top-0 bg-muted text-left"><tr><th className="p-2">Date</th><th className="p-2">Description</th><th className="p-2">Type</th><th className="p-2 text-right">Amount</th><th className="p-2">Category</th><th className="p-2">Import</th></tr></thead>
+          <div className="max-h-[48vh] overflow-y-auto overflow-x-hidden rounded-lg border">
+            <table className="w-full table-fixed text-xs sm:text-sm">
+              <thead className="sticky top-0 bg-muted text-left"><tr><th className="w-[66px] p-1.5 sm:w-[150px] sm:p-2">Date</th><th className="p-1.5 sm:p-2">Description</th><th className="hidden w-[82px] p-2 sm:table-cell">Type</th><th className="w-[68px] p-1.5 text-right sm:w-[100px] sm:p-2">Amount</th><th className="w-[82px] p-1.5 sm:w-[145px] sm:p-2">Category</th><th className="w-[38px] p-1 text-center sm:w-[66px] sm:p-2"><span className="hidden sm:inline">Import</span></th></tr></thead>
               <tbody>{entries.map((entry) => {
                 const duplicate = existingIds.has(entry.transactionId);
                 const included = includedById[entry.transactionId] ?? !duplicate;
                 return <tr key={entry.transactionId} className={'border-t ' + (!included ? 'bg-muted/50 text-muted-foreground opacity-60' : '')}>
-                  <td className="whitespace-nowrap p-2">{format(new Date(entry.date), 'dd MMM yyyy')}</td>
-                  <td className="p-2"><Label className="sr-only" htmlFor={'bank-description-' + entry.transactionId}>Description</Label><Input id={'bank-description-' + entry.transactionId} className="min-w-[200px]" value={descriptionById[entry.transactionId] ?? entry.description} onChange={(e) => setDescriptionById((current) => ({ ...current, [entry.transactionId]: e.target.value }))} /></td>
-                  <td className="p-2 capitalize">{entry.type}</td>
-                  <td className="whitespace-nowrap p-2 text-right">₹{entry.amount.toFixed(2)}</td>
-                  <td className="p-2"><Label className="sr-only" htmlFor={'bank-category-' + entry.transactionId}>Category</Label><select id={'bank-category-' + entry.transactionId} value={categoryById[entry.transactionId] || 'uncategorized'} onChange={(e) => setCategoryById((current) => ({ ...current, [entry.transactionId]: e.target.value }))} className="w-36 rounded-md border bg-background px-2 py-1.5 text-xs"><option value="uncategorized">Uncategorized</option>{categories.map((category) => <option key={category.value} value={category.value}>{category.icon} {category.label}</option>)}</select></td>
-                  <td className="p-2"><div className="flex min-w-28 flex-col gap-1">{!included && duplicate && <span className="text-[10px]">Possible duplicate</span>}<Button type="button" size="sm" variant={included ? 'outline' : 'default'} onClick={() => setIncludedById((current) => ({ ...current, [entry.transactionId]: !included }))}>{included ? <><Minus className="mr-1 h-3 w-3" />Remove</> : <><Plus className="mr-1 h-3 w-3" />Add</>}</Button></div></td>
+                  <td className="whitespace-nowrap p-1.5 text-[10px] sm:p-2 sm:text-xs">{format(new Date(entry.date), 'dd MMM')}</td>
+                  <td className="p-2"><Label className="sr-only" htmlFor={'bank-description-' + entry.transactionId}>Description</Label><Input id={'bank-description-' + entry.transactionId} className="h-8 w-full min-w-0 px-2 text-xs sm:h-10 sm:px-3 sm:text-sm" value={descriptionById[entry.transactionId] ?? entry.description} onChange={(e) => setDescriptionById((current) => ({ ...current, [entry.transactionId]: e.target.value }))} /></td>
+                  <td className="hidden p-2 capitalize sm:table-cell">{entry.type}</td>
+                  <td className="whitespace-nowrap p-1.5 text-right text-[10px] sm:p-2 sm:text-sm">₹{entry.amount.toFixed(2)}</td>
+                  
+                  <td className="p-1 sm:p-2"><Label className="sr-only">Categories</Label><Popover>
+                    <PopoverTrigger asChild><Button type="button" variant="outline" aria-label="Choose categories" className="h-8 w-full min-w-0 justify-between gap-1 px-1.5 text-[10px] font-normal sm:px-2 sm:text-xs"><span className="truncate">{(categoryById[entry.transactionId] ?? ['uncategorized']).length} selected</span><ChevronDown className="h-3 w-3 shrink-0" /></Button></PopoverTrigger>
+                    <PopoverContent align="end" className="w-56 p-2"><div className="max-h-56 space-y-1 overflow-y-auto">
+                      {[{ value: 'uncategorized', label: 'Uncategorized', icon: '🏷️' }, ...categories.filter((item) => item.value !== 'uncategorized')].map((category) => {
+                        const selected = categoryById[entry.transactionId] ?? ['uncategorized'];
+                        return <label key={category.value} className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-accent">
+                          <Checkbox checked={selected.includes(category.value)} onCheckedChange={() => setCategoryById((current) => {
+                            const values = current[entry.transactionId] ?? ['uncategorized'];
+                            const next = category.value === 'uncategorized'
+                              ? (values.includes('uncategorized') ? [] : ['uncategorized'])
+                              : (values.includes(category.value)
+                                ? values.filter((value) => value !== category.value)
+                                : [...values.filter((value) => value !== 'uncategorized'), category.value]);
+                            return { ...current, [entry.transactionId]: next };
+                          })} />
+                          <span>{category.icon} {category.label}</span>
+                        </label>;
+                      })}
+                    </div></PopoverContent>
+                  </Popover></td>
+                  
+                  <td className="p-1 text-center sm:p-2"><div className="flex flex-col items-center">
+                    {!included && duplicate && <span className="hidden text-[10px] sm:block">Possible duplicate</span>}
+                    <Button type="button" size="icon" variant="ghost" aria-label={included ? 'Remove transaction from import' : 'Add transaction to import'} title={included ? 'Remove from import' : 'Add possible duplicate'} className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => setIncludedById((current) => ({ ...current, [entry.transactionId]: !included }))}>{included ? <Trash2 className="h-4 w-4" /> : <Plus className="h-4 w-4" />}</Button>
+                  </div></td>
                 </tr>;
               })}</tbody>
             </table>
