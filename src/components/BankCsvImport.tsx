@@ -98,6 +98,7 @@ export const BankCsvImport = ({ transactions, categories, userEmail, onImport }:
         paidBy: userEmail,
         paymentMode: 'Bank transfer',
         source: 'bank_csv',
+        sharing: 'private',
         sourceTransactionId: entry.transactionId,
       }));
       await onImport(rows);

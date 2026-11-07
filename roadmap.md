@@ -14,8 +14,9 @@ Help a household understand what it spent, what it still plans to spend, and whe
 ## Next product milestones
 
 - [x] Import bank CSV statements with editable review rows, possible-duplicate handling, and row-count/debit/credit reconciliation before saving.
-- Create a household space with member attribution, clear sharing controls, and private transactions.
-- Add recurring household bills and a cash-flow outlook that combines bills, loan payments, and income.
+- [x] Add recurring household bills to the outlook alongside loan payments and recorded income/expenses.
+- [x] Add a per-transaction privacy choice for category-linked members and shared events.
+- Create a household space with member attribution and household-level access management.
 
 ## Ship checks
 

@@ -15,6 +15,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Transaction } from '@/pages/Index';
+import type { RecurringBill } from '@/types/recurringBill';
 
 interface Category {
   value: string;
@@ -287,5 +288,27 @@ export const firestoreService = {
         callback([]);
       }
     );
+  },
+  // Monthly recurring bills
+  subscribeToRecurringBills(userId: string, callback: (bills: RecurringBill[]) => void) {
+    const ref = collection(db, 'users', userId, 'recurringBills');
+    return onSnapshot(ref, (snapshot) => {
+      const bills: RecurringBill[] = [];
+      snapshot.forEach((item) => bills.push({ id: item.id, ...item.data() } as RecurringBill));
+      callback(bills.sort((a, b) => a.dueDay - b.dueDay));
+    }, (error) => {
+      console.error('FirestoreService: recurring bills subscription error:', error);
+      callback([]);
+    });
+  },
+
+  async addRecurringBill(userId: string, bill: Omit<RecurringBill, 'id' | 'createdAt'>) {
+    const ref = collection(db, 'users', userId, 'recurringBills');
+    const result = await addDoc(ref, { ...bill, createdAt: Timestamp.now() });
+    return result.id;
+  },
+
+  async deleteRecurringBill(userId: string, billId: string) {
+    await deleteDoc(doc(db, 'users', userId, 'recurringBills', billId));
   },
 };

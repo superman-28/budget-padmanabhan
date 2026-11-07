@@ -121,6 +121,7 @@ export const StatementImport = ({ transactions, categories, userEmail, onImport 
         paidBy: userEmail,
         paymentMode: 'Google Pay (UPI)',
         source: 'gpay_statement',
+        sharing: 'private',
         sourceTransactionId: entry.transactionId,
       }));
       await onImport(rows);
