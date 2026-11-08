@@ -1,0 +1,84 @@
+// Add these match blocks inside the existing
+// match /databases/{database}/documents { ... } block.
+// Do not replace the app's existing Firestore rules with this fragment.
+//
+// Group documents contain only group-entered expenses. Personal transactions,
+// budgets, and loans are not stored in these collections.
+
+function signedIn() {
+  return request.auth != null;
+}
+
+function groupPath(groupId) {
+  return /databases/$(database)/documents/groups/$(groupId);
+}
+
+function isGroupMember(groupId) {
+  return signedIn()
+    && exists(groupPath(groupId))
+    && request.auth.uid in get(groupPath(groupId)).data.memberIds;
+}
+
+function isGroupOwner(groupId) {
+  return signedIn()
+    && exists(groupPath(groupId))
+    && get(groupPath(groupId)).data.ownerId == request.auth.uid;
+}
+
+match /groups/{groupId} {
+  allow create: if signedIn()
+    && request.resource.data.ownerId == request.auth.uid
+    && request.resource.data.memberIds.size() == 1
+    && request.auth.uid in request.resource.data.memberIds
+    && request.resource.data.members.size() == 1
+    && request.resource.data.members[0].uid == request.auth.uid;
+
+  allow get, list: if isGroupMember(groupId);
+
+  // Owners manage group settings and membership. A pending invitee may add
+  // only their own UID when accepting the matching deterministic invite.
+  allow update: if isGroupOwner(groupId)
+    || (
+      signedIn()
+      && !(request.auth.uid in resource.data.memberIds)
+      && request.auth.uid in request.resource.data.memberIds
+      && request.resource.data.memberIds.size() == resource.data.memberIds.size() + 1
+      && request.resource.data.memberIds.hasAll(resource.data.memberIds)
+      && existsAfter(/databases/$(database)/documents/groupInvites/$(groupId + '_' + request.auth.uid))
+      && getAfter(/databases/$(database)/documents/groupInvites/$(groupId + '_' + request.auth.uid)).data.groupId == groupId
+      && getAfter(/databases/$(database)/documents/groupInvites/$(groupId + '_' + request.auth.uid)).data.inviteeUid == request.auth.uid
+      && getAfter(/databases/$(database)/documents/groupInvites/$(groupId + '_' + request.auth.uid)).data.status == 'accepted'
+    );
+
+  allow delete: if isGroupOwner(groupId);
+
+  match /{collectionName}/{documentId} {
+    allow read, write: if isGroupMember(groupId)
+      && collectionName in ['expenses', 'settlements', 'recurringBills'];
+  }
+}
+
+match /groupInvites/{inviteId} {
+  allow get, list: if signedIn()
+    && (resource.data.ownerId == request.auth.uid
+      || resource.data.inviteeUid == request.auth.uid);
+
+  allow create: if signedIn()
+    && request.resource.data.ownerId == request.auth.uid
+    && request.resource.data.status == 'pending'
+    && request.resource.data.inviteeUid is string
+    && request.resource.data.groupId is string
+    && isGroupOwner(request.resource.data.groupId);
+
+  allow update: if signedIn() && (
+    (resource.data.ownerId == request.auth.uid
+      && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'respondedAt'])
+      && request.resource.data.status == 'revoked')
+    || (resource.data.inviteeUid == request.auth.uid
+      && resource.data.status == 'pending'
+      && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'acceptedAt', 'respondedAt'])
+      && request.resource.data.status in ['accepted', 'declined'])
+  );
+
+  allow delete: if signedIn() && resource.data.ownerId == request.auth.uid;
+}

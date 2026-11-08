@@ -3,7 +3,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { LogOut, Bell, Landmark, Home, MapPin } from 'lucide-react';
+import { LogOut, Bell, Landmark, Home, MapPin, Users } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { NotificationPanel } from './NotificationPanel';
 import { notificationService, Notification } from '@/services/notificationService';
@@ -66,6 +66,7 @@ const AuthHeader = () => {
   const unreadCount = notifications.filter((n) => !n.read).length;
   const sections = [
     { label: 'Dashboard', path: '/', icon: Home },
+    { label: 'Groups', path: '/groups', icon: Users },
     { label: 'Loans', path: '/loans', icon: Landmark },
     { label: 'Events', path: '/events', icon: MapPin },
   ];
@@ -174,7 +175,7 @@ const AuthHeader = () => {
         </div>
       </header>
 
-      <nav aria-label="Main navigation" className="mobile-bottom-nav fixed inset-x-0 bottom-0 z-40 grid grid-cols-3 border-t-2 border-foreground bg-background px-2 pt-2 lg:hidden">
+      <nav aria-label="Main navigation" className="mobile-bottom-nav fixed inset-x-0 bottom-0 z-40 grid grid-cols-4 border-t-2 border-foreground bg-background px-2 pt-2 lg:hidden">
         {navItems(true)}
       </nav>
 
