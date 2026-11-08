@@ -16,7 +16,9 @@ Help a household understand what it spent, what it still plans to spend, and whe
 - [x] Import bank CSV statements with editable review rows, possible-duplicate handling, and row-count/debit/credit reconciliation before saving.
 - [x] Add recurring household bills to the outlook alongside loan payments and recorded income/expenses.
 - [x] Add a per-transaction privacy choice for category-linked members and shared events.
-- Create a household space with member attribution and household-level access management.
+- [x] Create household and trip groups with member invitations, member-only shared data, and access removal.
+- [x] Split shared expenses equally, by exact amount, percentage, or weighted shares; recalculate balances after edits.
+- [x] Simplify group debts, record offline settlements, save recurring bills with reusable split rules, and search/filter group spending.
 
 ## Ship checks
 

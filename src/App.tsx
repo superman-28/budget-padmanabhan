@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import Loans from "./pages/Loans";
 import Events from "./pages/Events";
+import Groups from "./pages/Groups";
 import NotFound from "./pages/NotFound";
 import { AuthProvider } from "@/contexts/AuthContext";
 import AuthGuard from "@/components/AuthGuard";
@@ -24,6 +25,7 @@ const App = () => (
             <Route path="/index" element={<AuthGuard><Index /></AuthGuard>} />
             <Route path="/loans" element={<AuthGuard><Loans /></AuthGuard>} />
             <Route path="/events" element={<AuthGuard><Events /></AuthGuard>} />
+            <Route path="/groups" element={<AuthGuard><Groups /></AuthGuard>} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
