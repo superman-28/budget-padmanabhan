@@ -3,14 +3,16 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { LogOut, Bell, Landmark, Home, MapPin, Users } from 'lucide-react';
+import { LogOut, Bell, Landmark, Home, MapPin, Users, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { NotificationPanel } from './NotificationPanel';
 import { notificationService, Notification } from '@/services/notificationService';
 import { webNotificationService } from '@/services/webNotificationService';
 import { toast } from '@/components/ui/sonner';
 
-const AuthHeader = () => {
+interface AuthHeaderProps { collapsed?: boolean; onToggleSidebar?: () => void; }
+
+const AuthHeader = ({ collapsed = false, onToggleSidebar }: AuthHeaderProps) => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -81,12 +83,14 @@ const AuthHeader = () => {
       size={mobile ? 'sm' : 'default'}
       onClick={() => navigate(path)}
       aria-current={isCurrent(path) ? 'page' : undefined}
+      title={!mobile && collapsed ? label : undefined}
+      aria-label={!mobile && collapsed ? label : undefined}
       className={mobile
         ? 'h-auto min-h-12 flex-col gap-1 border-2 border-transparent px-2 py-1 text-[10px] sm:text-xs'
-        : 'h-12 w-full justify-start gap-3 px-4'}
+        : `h-12 w-full ${collapsed ? 'justify-center px-2' : 'justify-start gap-3 px-4'}`}
     >
       <Icon className="h-5 w-5 shrink-0" />
-      <span>{label}</span>
+      <span className={!mobile && collapsed ? 'sr-only' : undefined}>{label}</span>
     </Button>
   ));
 
@@ -123,37 +127,42 @@ const AuthHeader = () => {
 
   return (
     <>
-      <aside className="fixed inset-y-0 left-0 z-40 hidden w-64 flex-col border-r-2 border-foreground bg-background px-5 py-6 lg:flex">
-        <div className="flex items-center gap-3 border-b-2 border-foreground pb-6">
-          <div className="flex h-11 w-11 items-center justify-center border-2 border-foreground bg-primary text-foreground shadow-sm">
-            <span className="font-display text-2xl font-bold">₹</span>
+      <aside className={`fixed inset-y-0 left-0 z-40 hidden flex-col border-r-2 border-foreground bg-background py-6 transition-[width,padding] duration-200 lg:flex ${collapsed ? 'w-20 px-3' : 'w-64 px-5'}`}>
+        <div className={`flex items-center border-b-2 border-foreground pb-6 ${collapsed ? 'justify-center' : 'justify-between gap-3'}`}>
+          <div className={`flex min-w-0 items-center ${collapsed ? '' : 'gap-3'}`}>
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center border-2 border-foreground bg-primary text-foreground shadow-sm">
+              <span className="font-display text-2xl font-bold">₹</span>
+            </div>
+            {!collapsed && <div className="min-w-0">
+              <p className="font-display text-lg font-bold leading-tight">Finance Tracker</p>
+              <p className="text-xs text-muted-foreground">Personal finances</p>
+            </div>}
           </div>
-          <div className="min-w-0">
-            <p className="font-display text-lg font-bold leading-tight">Finance Tracker</p>
-            <p className="text-xs text-muted-foreground">Personal finances</p>
-          </div>
+          <Button variant="ghost" size="icon" className={collapsed ? 'absolute right-1 top-2 h-8 w-8' : 'h-9 w-9 shrink-0'} onClick={onToggleSidebar} aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'} title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}>
+            {collapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
+          </Button>
         </div>
         <nav aria-label="Main navigation" className="mt-7 flex flex-col gap-2">
           {navItems()}
         </nav>
         <div className="mt-auto border-t-2 border-foreground pt-5">
-          <div className="flex items-center gap-3">
+          <div className={`flex items-center ${collapsed ? 'justify-center' : 'gap-3'}`}>
             <Avatar className="h-10 w-10 shrink-0 border-2 border-foreground">
               <AvatarImage src={user.photoURL || undefined} alt={user.displayName || 'User'} />
               <AvatarFallback className="bg-secondary font-bold text-secondary-foreground">
                 {user.displayName?.charAt(0) || user.email?.charAt(0) || 'U'}
               </AvatarFallback>
             </Avatar>
-            <div className="min-w-0 flex-1">
+            {!collapsed && <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-bold">{user.displayName || 'User'}</p>
               <p className="truncate text-xs text-muted-foreground">{user.email}</p>
-            </div>
+            </div>}
           </div>
-          <div className="mt-4 flex gap-2">
+          <div className={`mt-4 flex ${collapsed ? 'flex-col items-center' : 'gap-2'}`}>
             {notificationButton}
-            <Button variant="outline" onClick={logout} className="h-10 flex-1" aria-label="Sign out">
+            {collapsed ? signOutButton : <Button variant="outline" onClick={logout} className="h-10 flex-1" aria-label="Sign out">
               <LogOut className="h-4 w-4" /> Sign out
-            </Button>
+            </Button>}
           </div>
         </div>
       </aside>
